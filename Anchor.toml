@@ -5,8 +5,8 @@ members = ["programs/nft-staking"]
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "mainnet"
-wallet = "/home/plmoknij/Desktop/ParamsNFT/staking_keys/staking_key_20211222.json"
+cluster = "devnet"
+wallet = "./devnet-wallet.json"
 
 [programs.localnet]
 nft_staking = "paramKFFuRPLVXZWjDRbnk5xKemduYZUW2BqUp7xZD3"
