@@ -16,17 +16,9 @@ export const generateUuid = (): string => {
   return anchor.web3.Keypair.generate().publicKey.toBase58().slice(0, 6)
 }
 
-const configAccountPair: [PublicKey, string] = [
-  new PublicKey("hPSepkvUwsJRPxtMGrmVdzAJQd8Xg3Re5QrjqJNtk61"),
-  "3j5btb",
-]
-
 export const getConfigAccount = async (
   authority: anchor.web3.PublicKey
 ): Promise<[anchor.web3.PublicKey, string]> => {
-  // if (configAccountPair) {
-  //   return configAccountPair
-  // }
   let configUuid = generateUuid()
 
   let configAccount = await PublicKey.createWithSeed(

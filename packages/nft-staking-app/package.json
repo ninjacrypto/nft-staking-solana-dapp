@@ -6,7 +6,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "batch-add-nfts": "ts-node --project ./scripts/tsconfig.json ./scripts/batchAddNfts.ts"
+    "init-pool": "ts-node --project ./scripts/tsconfig.json ./scripts/initializePool.ts"
   },
   "dependencies": {
     "@chakra-ui/icons": "^1.1.1",
