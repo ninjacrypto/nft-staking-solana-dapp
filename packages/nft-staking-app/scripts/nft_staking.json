@@ -571,10 +571,7 @@
           {
             "name": "funders",
             "type": {
-              "array": [
-                "publicKey",
-                5
-              ]
+              "array": ["publicKey", 5]
             }
           }
         ]
@@ -596,12 +593,6 @@
           {
             "name": "numMint",
             "type": "u32"
-          },
-          {
-            "name": "mintAddresses",
-            "type": {
-              "vec": "publicKey"
-            }
           }
         ]
       }
@@ -744,6 +735,14 @@
       "code": 314,
       "name": "NumericalOverflowError",
       "msg": "Numerical overflow error!"
+    },
+    {
+      "code": 315,
+      "name": "InvalidMint",
+      "msg": "Mint address is not stakable!"
     }
-  ]
+  ],
+  "metadata": {
+    "address": "Fymtt5B6Y9dQMHDFagD1puVbtQsHk7fL7CYBtyx1BfTW"
+  }
 }

@@ -1,0 +1,12 @@
+{
+  "cluster": "devnet",
+  "keypair": "./devnet-wallet.json",
+  "maxNumNftMints": 10000,
+  "rewardDuration": 31536000,
+  "rewardMint": "DgNPX1ESu2G3Hrjex9jB8FtC8gv4ZA5uZWsLCnn4rbe3",
+  "preview": false,
+  "validNftMints": [
+    "3yhe9ctad2gKtKR3KPeNCRTkdt3cAw7zFkx2KaEMmsXJ",
+    "G9stsZsqfJJ7R2aZVBd1jN5FCEdotiRm5mt7iHdG7fiy"
+  ]
+}
