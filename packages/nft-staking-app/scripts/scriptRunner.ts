@@ -24,6 +24,7 @@ export interface ScriptRunnerArgs {
   provider: Provider
   program: Program
   scriptConfig: Config
+  args: Record<string, string>
 }
 
 const validateConfig = (value: any): value is Readonly<Config> => {
@@ -65,6 +66,21 @@ const loadKeypair = (keypairPath: string) => {
   return keypair
 }
 
+const parseArgs = (args: string[]) => {
+  return _.reduce(
+    args,
+    (accum, value) => {
+      if (_.startsWith(value, "--")) {
+        let [argKey, argValue] = _.split(value, "=")
+        argKey = argKey.slice(2)
+        accum[argKey] = argValue
+      }
+      return accum
+    },
+    {}
+  )
+}
+
 const scriptRunner = async (
   script: ({
     connection,
@@ -77,6 +93,7 @@ const scriptRunner = async (
   if (!validateConfig(scriptConfig)) {
     throw new Error("Config is invalid")
   }
+  const args = parseArgs(process.argv)
   const connection = new Connection(clusterApiUrl(scriptConfig.cluster))
   const keypair = loadKeypair(scriptConfig.keypair)
   const wallet = new Wallet(keypair)
@@ -96,6 +113,7 @@ const scriptRunner = async (
     provider,
     program: nftStakingProgram,
     scriptConfig,
+    args,
   })
 
   console.log("Process complete")
