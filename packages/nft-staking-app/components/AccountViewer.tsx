@@ -1,28 +1,50 @@
 import _ from "lodash"
 import { ChangeEvent, useState } from "react"
 import { PublicKey } from "@solana/web3.js"
+import { BN } from "@project-serum/anchor"
 import { Select, Code, Spinner, Text, Button } from "@chakra-ui/react"
 import { Center, Box, VStack } from "@chakra-ui/layout"
 import { AccountTypes } from "../models"
 import { useAccount } from "../hooks/useAccounts"
 
-export const renderObj = (obj: any, prefix?: string): JSX.Element[] => {
-  return _.flatten(
-    _.map(obj, (item, key) => {
-      if (_.isObject(item)) return renderObj(item, key)
-      return (
-        <Code
-          w="full"
-          textAlign="left"
-          mb="2"
-          key={`item-${prefix ? prefix + "-" + key : key}`}
-          backgroundColor="transparent"
-        >
-          {`${key}: ${item}`}
-        </Code>
-      )
-    })
+type RenderItem = [string, string]
+
+const renderObjData = (obj: any) => {
+  return _.reduce(
+    obj,
+    (accum: RenderItem[], value: any, key: string) => {
+      if (_.isArray(value) && value[0] instanceof PublicKey) {
+        const result: RenderItem[] = _.map(value, (item, index) => [
+          `${key} ${index.toString()}`,
+          item.toString(),
+        ])
+        return _.concat(accum, result)
+      }
+      if (value instanceof PublicKey || BN.isBN(value)) {
+        accum.push([key, value.toString()])
+        return accum
+      }
+      accum.push([key, value])
+      return accum
+    },
+    []
   )
+}
+
+export const renderObj = (obj: any, prefix?: string): JSX.Element[] => {
+  return _.map(renderObjData(obj), ([key, value]) => {
+    return (
+      <Code
+        w="full"
+        textAlign="left"
+        mb="2"
+        key={`item-${key}`}
+        backgroundColor="transparent"
+      >
+        {`${key}: ${value}`}
+      </Code>
+    )
+  })
 }
 
 export const AccountViewer = ({
@@ -72,7 +94,7 @@ export const AccountViewer = ({
           Close Account
         </Button>
       )}
-      <Box h="96" overflow="auto" w="full">
+      <Box h="96" overflow="auto" w="530px">
         {account && (
           <Code
             w="full"
