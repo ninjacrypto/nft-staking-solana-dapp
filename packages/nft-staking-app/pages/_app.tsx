@@ -6,10 +6,9 @@ import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react"
 import { Program, Provider } from "@project-serum/anchor"
 import AnchorAccountCacheProvider from "../contexts/AnchorAccountsCacheProvider"
 import { ClusterContextProvider } from "../contexts/cluster"
-import { getVibeMarketProgram } from "../solana/getPrograms"
+import { getNftStakingProgram } from "../solana/getPrograms"
 import SidebarWithHeader from "../components/Layout"
 import { theme } from "../styles/theme"
-import { VibeMarket } from "../solana/vibeMarket"
 import "../styles/globals.css"
 
 const WalletConnectionProvider = dynamic(
@@ -22,8 +21,8 @@ const WalletConnectionProvider = dynamic(
 const AccountsCacheProvidersSetup = ({ children }: { children: ReactNode }) => {
   const { connection } = useConnection()
   const wallet = useAnchorWallet()
-  const [vibeMarketProgram, setVibeMarketProgram] = useState<
-    Program<VibeMarket> | undefined
+  const [nftStakingProgram, setNftStakingProgram] = useState<
+    Program | undefined
   >()
 
   useEffect(() => {
@@ -33,17 +32,17 @@ const AccountsCacheProvidersSetup = ({ children }: { children: ReactNode }) => {
     ;(async function () {
       // @ts-ignore - calling provider without wallet is used to instantiate connection
       const provider = new Provider(connection, wallet, {})
-      const vibeMarketProgram = await getVibeMarketProgram(provider)
-      setVibeMarketProgram(vibeMarketProgram)
+      const nftStakingProgram = await getNftStakingProgram(provider)
+      setNftStakingProgram(nftStakingProgram)
     })()
   }, [connection, wallet])
 
-  if (!vibeMarketProgram) {
+  if (!nftStakingProgram) {
     return <>{children}</>
   }
 
   return (
-    <AnchorAccountCacheProvider vibeMarketProgram={vibeMarketProgram}>
+    <AnchorAccountCacheProvider nftStakingProgram={nftStakingProgram}>
       {children}
     </AnchorAccountCacheProvider>
   )

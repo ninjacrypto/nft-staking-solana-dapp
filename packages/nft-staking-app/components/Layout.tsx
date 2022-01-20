@@ -24,7 +24,7 @@ import {
   FiMenu,
   FiLayers,
   FiDollarSign,
-  FiFilePlus,
+  FiClipboard,
   FiImage,
   FiLogOut,
 } from "react-icons/fi"
@@ -44,29 +44,14 @@ interface LinkItemProps {
 
 const AdminLinkItems: Array<LinkItemProps> = [
   {
-    name: "Whitelist",
-    icon: FiAlignJustify,
-    href: "/admin/whitelist",
+    name: "Manage Pool",
+    icon: FiClipboard,
+    href: "/admin/manage-pool",
   },
   {
-    name: "Collections",
-    icon: FiLayers,
-    href: "/admin/collections",
-  },
-  {
-    name: "Price Models",
+    name: "Fund Pool",
     icon: FiDollarSign,
-    href: "/admin/price-model",
-  },
-  {
-    name: "Add NFT",
-    icon: FiImage,
-    href: "/admin/add-nft",
-  },
-  {
-    name: "Withdraw Liquidity",
-    icon: FiLogOut,
-    href: "/admin/withdraw-liquidity",
+    href: "/admin/fund-pool",
   },
 ]
 
@@ -75,31 +60,45 @@ export default function SidebarWithHeader({
 }: {
   children: ReactNode
 }) {
+  const { ADDRESS_STAKING_POOL } = getClusterConstants("ADDRESS_STAKING_POOL")
   const { isOpen, onOpen, onClose } = useDisclosure()
+  const isAdmin = useIsAdmin(ADDRESS_STAKING_POOL)
+
   return (
-    <Box minH="100vh" bg={useColorModeValue("brandPink.100", "gray.900")}>
-      <SidebarContent
-        onClose={() => onClose}
-        display={{ base: "none", md: "block" }}
-      />
-      <Drawer
-        autoFocus={false}
-        isOpen={isOpen}
-        placement="left"
-        onClose={onClose}
-        returnFocusOnClose={false}
-        onOverlayClick={onClose}
-        size="full"
-      >
-        <DrawerContent>
-          <SidebarContent onClose={onClose} />
-        </DrawerContent>
-      </Drawer>
+    <Box minH="100vh" bg={useColorModeValue("orange.50", "gray.900")}>
+      {isAdmin && (
+        <>
+          <SidebarContent
+            onClose={() => onClose}
+            display={{ base: "none", md: "block" }}
+          />
+          <Drawer
+            autoFocus={false}
+            isOpen={isOpen}
+            placement="left"
+            onClose={onClose}
+            returnFocusOnClose={false}
+            onOverlayClick={onClose}
+            size="full"
+          >
+            <DrawerContent>
+              <SidebarContent onClose={onClose} />
+            </DrawerContent>
+          </Drawer>
+        </>
+      )}
       {/* mobilenav */}
       <MobileNav onOpen={onOpen} />
       <Box
-        w={{ base: "full", md: "75%", lg: "80%", xl: "85%" }}
-        ml={{ base: 0, md: "25%", lg: "20%", xl: "15%" }}
+        {...(isAdmin
+          ? {
+              w: { base: "full", md: "75%", lg: "80%", xl: "85%" },
+              ml: { base: 0, md: "25%", lg: "20%", xl: "15%" },
+            }
+          : {
+              w: "full",
+              ml: 0,
+            })}
         p="8"
         pb="40"
         h="full"
@@ -118,20 +117,6 @@ interface SidebarProps extends BoxProps {
 }
 
 const SidebarContent = ({ onClose, ...rest }: SidebarProps) => {
-  const { ADDRESS_VIBE_MARKET } = getClusterConstants("ADDRESS_VIBE_MARKET")
-  const isAdmin = useIsAdmin(ADDRESS_VIBE_MARKET)
-
-  const [market] = useAccount("market", ADDRESS_VIBE_MARKET, { useCache: true })
-  const collectionAddresses = useCollectionAddresses(
-    market?.publicKey,
-    market?.data.numCollections
-  )
-
-  const [collections, collectionsLoading] = useAccounts(
-    "collection",
-    collectionAddresses
-  )
-
   return (
     <Box
       bg={useColorModeValue("brandPink.200", "gray.900")}
@@ -163,6 +148,7 @@ const SidebarContent = ({ onClose, ...rest }: SidebarProps) => {
         </Link>
         <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
       </Flex>
+
       <Flex
         align="center"
         p="2"
@@ -173,38 +159,13 @@ const SidebarContent = ({ onClose, ...rest }: SidebarProps) => {
         fontWeight="900"
         color="white"
       >
-        <Text fontSize="2xl">Collections</Text>
+        <Text fontSize="2xl">Admin</Text>
       </Flex>
-      {collections &&
-        _.map(_.values(collections), (collection) => (
-          <NavItem
-            key={collection.data.title}
-            href={`/collection/${collection.publicKey.toString()}`}
-          >
-            {collection.data.title}
-          </NavItem>
-        ))}
-      {isAdmin && (
-        <>
-          <Flex
-            align="center"
-            p="2"
-            mt="4"
-            mx="4"
-            role="group"
-            borderBottom="2px"
-            fontWeight="900"
-            color="white"
-          >
-            <Text fontSize="2xl">Admin</Text>
-          </Flex>
-          {AdminLinkItems.map((link) => (
-            <NavItem key={link.name} icon={link.icon} href={link.href}>
-              {link.name}
-            </NavItem>
-          ))}
-        </>
-      )}
+      {AdminLinkItems.map((link) => (
+        <NavItem key={link.name} icon={link.icon} href={link.href}>
+          {link.name}
+        </NavItem>
+      ))}
     </Box>
   )
 }
@@ -252,8 +213,8 @@ interface MobileProps extends FlexProps {
   onOpen: () => void
 }
 const MobileNav = ({ onOpen, ...rest }: MobileProps) => {
-  const { ADDRESS_VIBE_MARKET } = getClusterConstants("ADDRESS_VIBE_MARKET")
-  const isAdmin = useIsAdmin(ADDRESS_VIBE_MARKET)
+  const { ADDRESS_STAKING_POOL } = getClusterConstants("ADDRESS_STAKING_POOL")
+  const isAdmin = useIsAdmin(ADDRESS_STAKING_POOL)
   return (
     <Flex
       px={{ base: 4, md: 4 }}

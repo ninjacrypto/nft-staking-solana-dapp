@@ -3,21 +3,16 @@ import React, { ReactNode, useContext } from "react"
 import { PublicKey } from "@solana/web3.js"
 import { Program } from "@project-serum/anchor"
 import * as Models from "../models"
-import { VibeMarket } from "../solana/vibeMarket"
 
 export interface AnchorAccountCacheProviderProps {
-  vibeMarketProgram: Program<VibeMarket>
+  nftStakingProgram: Program
   children: ReactNode
 }
 
 type AccountMap<T> = { [key: string]: T }
 
 export interface AnchorAccountCacheProviderState {
-  [Models.GlobalState.AccountType]: AccountMap<Models.GlobalState.GlobalState>
-  [Models.Market.AccountType]: AccountMap<Models.Market.Market>
-  [Models.Collection.AccountType]: AccountMap<Models.Collection.Collection>
-  [Models.NftBucket.AccountType]: AccountMap<Models.NftBucket.NftBucket>
-  [Models.PriceModel.AccountType]: AccountMap<Models.PriceModel.PriceModel>
+  [Models.Pool.AccountType]: AccountMap<Models.Pool.Pool>
   [Models.HToken.AccountType]: AccountMap<Models.HToken.HToken>
   [Models.HMint.AccountType]: AccountMap<Models.HMint.HMint>
 }
@@ -74,7 +69,7 @@ interface AnchorAccountCacheFns {
 
 export type IAnchorAccountCacheContext =
   | ({ isEnabled: true } & AnchorAccountCacheProviderState &
-      AnchorAccountCacheFns & { vibeMarketProgram: Program<VibeMarket> })
+      AnchorAccountCacheFns & { nftStakingProgram: Program })
   | { isEnabled: false }
 
 export const AnchorAccountCacheContext =
@@ -85,11 +80,7 @@ class AnchorAccountCacheProvider extends React.Component<
   AnchorAccountCacheProviderState
 > {
   accountManagers: {
-    [Models.GlobalState.AccountType]: Models.GlobalState.GlobalStateManager
-    [Models.Market.AccountType]: Models.Market.MarketManager
-    [Models.Collection.AccountType]: Models.Collection.CollectionManager
-    [Models.NftBucket.AccountType]: Models.NftBucket.NftBucketManager
-    [Models.PriceModel.AccountType]: Models.PriceModel.PriceModelManager
+    [Models.Pool.AccountType]: Models.Pool.PoolManager
     [Models.HToken.AccountType]: Models.HToken.HTokenManager
     [Models.HMint.AccountType]: Models.HMint.HMintManager
   }
@@ -98,34 +89,19 @@ class AnchorAccountCacheProvider extends React.Component<
     super(props)
 
     this.accountManagers = {
-      [Models.GlobalState.AccountType]:
-        new Models.GlobalState.GlobalStateManager(this.props.vibeMarketProgram),
-      [Models.Market.AccountType]: new Models.Market.MarketManager(
-        this.props.vibeMarketProgram
-      ),
-      [Models.Collection.AccountType]: new Models.Collection.CollectionManager(
-        this.props.vibeMarketProgram
-      ),
-      [Models.NftBucket.AccountType]: new Models.NftBucket.NftBucketManager(
-        this.props.vibeMarketProgram
-      ),
-      [Models.PriceModel.AccountType]: new Models.PriceModel.PriceModelManager(
-        this.props.vibeMarketProgram
+      [Models.Pool.AccountType]: new Models.Pool.PoolManager(
+        this.props.nftStakingProgram
       ),
       [Models.HToken.AccountType]: new Models.HToken.HTokenManager(
-        this.props.vibeMarketProgram.provider.connection
+        this.props.nftStakingProgram.provider.connection
       ),
       [Models.HMint.AccountType]: new Models.HMint.HMintManager(
-        this.props.vibeMarketProgram.provider.connection
+        this.props.nftStakingProgram.provider.connection
       ),
     }
 
     this.state = {
-      [Models.GlobalState.AccountType]: {},
-      [Models.Market.AccountType]: {},
-      [Models.Collection.AccountType]: {},
-      [Models.NftBucket.AccountType]: {},
-      [Models.PriceModel.AccountType]: {},
+      [Models.Pool.AccountType]: {},
       [Models.HToken.AccountType]: {},
       [Models.HMint.AccountType]: {},
     }
@@ -250,7 +226,7 @@ class AnchorAccountCacheProvider extends React.Component<
         value={{
           ...this.state,
           isEnabled: true,
-          vibeMarketProgram: this.props.vibeMarketProgram,
+          nftStakingProgram: this.props.nftStakingProgram,
           fetch: this.fetch.bind(this),
           fetchMulti: this.fetchMulti.bind(this),
           fetchAndSub: this.fetchAndSub.bind(this),

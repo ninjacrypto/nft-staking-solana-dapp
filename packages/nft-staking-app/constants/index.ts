@@ -17,9 +17,9 @@ export type ClusterKey = keyof typeof CLUSTER_MAP
 
 interface CLUSTER_KEY_MAP {
   ADDRESS_NATIVE_MINT: PublicKey
-  ADDRESS_VIBE_MARKET: PublicKey
+  ADDRESS_STAKING_POOL: PublicKey
   PROGRAM_ASSOCIATED_TOKEN: PublicKey
-  PROGRAM_VIBE_MARKET: PublicKey
+  PROGRAM_NFT_STAKING: PublicKey
   PROGRAM_SYSTEM: PublicKey
   PROGRAM_TOKEN: PublicKey
 }

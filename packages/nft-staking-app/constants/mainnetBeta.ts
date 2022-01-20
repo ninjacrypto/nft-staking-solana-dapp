@@ -1,9 +1,9 @@
 import { PublicKey } from "@solana/web3.js"
 
-export const ADDRESS_VIBE_MARKET = new PublicKey(
-  "4tmQz2bkzDY9KmaEBjXSm8qY3889LtDUup7NrqrrBdrB"
+export const ADDRESS_STAKING_POOL = new PublicKey(
+  "7kFLKBKotaYBjubWYQFKshJGwV8bcPmPFpWqXEZmQScL"
 )
 
-export const PROGRAM_VIBE_MARKET = new PublicKey(
-  "vXXYKPPwmERsfQPKEwhmnQBABVDoLUKRzz5LtLk9ndS"
+export const PROGRAM_NFT_STAKING = new PublicKey(
+  "Fymtt5B6Y9dQMHDFagD1puVbtQsHk7fL7CYBtyx1BfTW"
 )

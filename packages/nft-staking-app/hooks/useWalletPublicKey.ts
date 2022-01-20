@@ -4,7 +4,7 @@ import { useAnchorWallet } from "@solana/wallet-adapter-react"
 const useWalletPublicKey = () => {
   const wallet = useAnchorWallet()
 
-  const impersonate = "7aouzGp7RRJwd7V5s8DuPoUNDwaJ3Cq2zzLAcErscVqv"
+  const impersonate = ""
 
   if (impersonate) {
     return new PublicKey(impersonate)
