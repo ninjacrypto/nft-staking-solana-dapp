@@ -3,7 +3,7 @@ import { PublicKey } from "@solana/web3.js"
 import { Program, BN } from "@project-serum/anchor"
 import { BaseAnchorAccount, BaseAnchorAccountManager } from "./baseAnchor"
 
-export const AccountType = "userAccount"
+export const AccountType = "user"
 
 export interface UserAccount {
   uuid: string

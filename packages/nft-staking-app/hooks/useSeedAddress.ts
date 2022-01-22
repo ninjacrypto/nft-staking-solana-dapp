@@ -3,6 +3,8 @@ import { useState, useMemo, useEffect } from "react"
 import { PublicKey } from "@solana/web3.js"
 import { FilteredSpecificAccountTypeMap } from "../models"
 import { programs } from "@metaplex/js"
+import { getUserAddress } from "../solana/seedAddresses"
+import { getClusterConstants } from "../constants"
 
 const {
   metadata: { Metadata },
@@ -45,4 +47,29 @@ export const useMetaplexMetadataAddresses = (
     })()
   }, [_.size(nftAccounts)])
   return seedAddresses
+}
+
+export const useUserAccountAddress = (walletPublicKey?: PublicKey) => {
+  const [seedAddress, setSeedAddress] = useState<PublicKey | undefined>(
+    undefined
+  )
+  useEffect(() => {
+    ;(async function () {
+      if (!walletPublicKey) {
+        return
+      }
+      const { ADDRESS_STAKING_POOL, PROGRAM_NFT_STAKING } = getClusterConstants(
+        "ADDRESS_STAKING_POOL",
+        "PROGRAM_NFT_STAKING"
+      )
+      const [userAddress] = await getUserAddress(
+        ADDRESS_STAKING_POOL,
+        walletPublicKey,
+        PROGRAM_NFT_STAKING
+      )
+      setSeedAddress(userAddress)
+    })()
+  }, [walletPublicKey?.toString()])
+
+  return seedAddress
 }
