@@ -15,6 +15,8 @@ export interface AnchorAccountCacheProviderState {
   [Models.Pool.AccountType]: AccountMap<Models.Pool.Pool>
   [Models.HToken.AccountType]: AccountMap<Models.HToken.HToken>
   [Models.HMint.AccountType]: AccountMap<Models.HMint.HMint>
+  [Models.MetaplexMetadata
+    .AccountType]: AccountMap<Models.MetaplexMetadata.MetaplexMetadata>
 }
 
 type Awaited<T> = T extends PromiseLike<infer U> ? U : T
@@ -83,6 +85,8 @@ class AnchorAccountCacheProvider extends React.Component<
     [Models.Pool.AccountType]: Models.Pool.PoolManager
     [Models.HToken.AccountType]: Models.HToken.HTokenManager
     [Models.HMint.AccountType]: Models.HMint.HMintManager
+    [Models.MetaplexMetadata
+      .AccountType]: Models.MetaplexMetadata.MetaplexMetadataManager
   }
 
   constructor(props: Readonly<AnchorAccountCacheProviderProps>) {
@@ -98,12 +102,17 @@ class AnchorAccountCacheProvider extends React.Component<
       [Models.HMint.AccountType]: new Models.HMint.HMintManager(
         this.props.nftStakingProgram.provider.connection
       ),
+      [Models.MetaplexMetadata.AccountType]:
+        new Models.MetaplexMetadata.MetaplexMetadataManager(
+          this.props.nftStakingProgram.provider.connection
+        ),
     }
 
     this.state = {
       [Models.Pool.AccountType]: {},
       [Models.HToken.AccountType]: {},
       [Models.HMint.AccountType]: {},
+      [Models.MetaplexMetadata.AccountType]: {},
     }
   }
 

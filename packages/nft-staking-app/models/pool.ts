@@ -29,7 +29,6 @@ export class PoolManager extends BaseAnchorAccountManager<PoolAccount, Pool> {
   }
 
   isValid = (entity: any): entity is Pool => {
-    console.log("authority", entity.data.authority.toString())
     return (
       entity instanceof Pool &&
       typeof entity.data.isInitialized === "boolean" &&

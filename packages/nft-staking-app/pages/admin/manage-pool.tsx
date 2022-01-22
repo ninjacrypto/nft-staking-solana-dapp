@@ -1,21 +1,95 @@
 import _ from "lodash"
-import { Heading, Button, Input } from "@chakra-ui/react"
+import {
+  Heading,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
+  Button,
+  Input,
+  Image,
+  HStack,
+  Divider,
+  Text,
+} from "@chakra-ui/react"
 import { PublicKey } from "@solana/web3.js"
 import { Center, VStack, StackDivider, Box } from "@chakra-ui/layout"
 import authorizeFunder from "../../solana/scripts/authorizeFunder"
-import { getClusterConstants } from "../../constants"
 import deauthorizeFunder from "../../solana/scripts/deauthorizeFunder"
+import fundPool from "../../solana/scripts/fundPool"
+import { getClusterConstants } from "../../constants"
 import useWalletPublicKey from "../../hooks/useWalletPublicKey"
-import { useState, useCallback } from "react"
+import { useMemo, useState, useCallback } from "react"
 import { useAnchorAccountCache } from "../../contexts/AnchorAccountsCacheProvider"
 import useTxCallback from "../../hooks/useTxCallback"
 import AccountViewer from "../../components/AccountViewer"
+import { useAccount } from "../../hooks/useAccounts"
+import { useTokenRegistry } from "../../hooks/useTokenRegistry"
+import { useTokenAccounts } from "../../hooks/useTokenAccounts"
 
 const ManagePoolPage = () => {
   const walletPublicKey = useWalletPublicKey()
   const anchorAccountCache = useAnchorAccountCache()
 
   const { ADDRESS_STAKING_POOL } = getClusterConstants("ADDRESS_STAKING_POOL")
+  const tokenRegistry = useTokenRegistry()
+  const [pool] = useAccount("pool", ADDRESS_STAKING_POOL, {
+    subscribe: true,
+  })
+
+  const tokenAccounts = useTokenAccounts(walletPublicKey)
+
+  const rewardTokenAccount = useMemo(() => {
+    if (!pool || !tokenAccounts) {
+      return
+    }
+    return _.find(
+      tokenAccounts,
+      (tokenAccount) =>
+        tokenAccount.data.mint === pool.data.rewardMint.toString()
+    )
+  }, [pool, tokenAccounts])
+
+  const [fundAmount, setFundAMount] = useState(0)
+  const handleFundAmountChange = (valueAsString: string) => {
+    setFundAMount(Number(valueAsString))
+  }
+
+  const _fundPoolClickHandler = useCallback(async () => {
+    if (
+      !anchorAccountCache.isEnabled ||
+      !walletPublicKey ||
+      !pool ||
+      !rewardTokenAccount ||
+      !fundAmount
+    ) {
+      throw new Error("Invalid data")
+    }
+
+    await fundPool(
+      anchorAccountCache,
+      walletPublicKey,
+      pool.publicKey,
+      pool.data.config,
+      pool.data.rewardVault,
+      rewardTokenAccount.publicKey,
+      fundAmount
+    )
+    setFundAMount(0)
+  }, [
+    anchorAccountCache.isEnabled,
+    walletPublicKey?.toString(),
+    pool,
+    rewardTokenAccount,
+    fundAmount,
+  ])
+
+  const fundPoolClickHandler = useTxCallback(_fundPoolClickHandler, {
+    info: "Funding pool...",
+    success: "Pool funded!",
+    error: "Transaction failed",
+  })
 
   const [newFunderAddress, setNewFunderAddress] = useState("")
   const handleNewFunderAddressChange = (
@@ -93,6 +167,8 @@ const ManagePoolPage = () => {
     }
   )
 
+  const rewardMint = pool?.data.rewardMint.toString()
+
   return (
     <VStack
       w="full"
@@ -100,6 +176,46 @@ const ManagePoolPage = () => {
       spacing={16}
       textAlign="center"
     >
+      <VStack w="72">
+        <Heading w="full" mb="8">
+          Fund Pool
+        </Heading>
+        {tokenRegistry && rewardMint && tokenRegistry[rewardMint] && (
+          <HStack>
+            <Image
+              alt="token image"
+              w="16"
+              h="16"
+              borderRadius="20"
+              src={tokenRegistry[rewardMint].logoURI}
+            />
+            <Text>{tokenRegistry[rewardMint].name}</Text>
+          </HStack>
+        )}
+        <NumberInput
+          w="full"
+          value={fundAmount}
+          defaultValue={0}
+          min={0}
+          onChange={handleFundAmountChange}
+        >
+          <NumberInputField />
+          <NumberInputStepper>
+            <NumberIncrementStepper />
+            <NumberDecrementStepper />
+          </NumberInputStepper>
+        </NumberInput>
+        <Button
+          colorScheme="purple"
+          mt="4"
+          px="8"
+          w="40"
+          onClick={fundPoolClickHandler}
+          disabled={!rewardTokenAccount || !fundAmount}
+        >
+          Submit
+        </Button>
+      </VStack>
       <Center flexDirection="column" w="96">
         <Heading w="full" mb="8">
           Authorize Funder
@@ -116,6 +232,7 @@ const ManagePoolPage = () => {
           px="8"
           w="40"
           onClick={authorizeFunderClickHandler}
+          disabled={!newFunderAddress}
         >
           Submit
         </Button>
@@ -136,6 +253,7 @@ const ManagePoolPage = () => {
           px="8"
           w="40"
           onClick={deauthorizeFunderClickHandler}
+          disabled={!oldFunderAddress}
         >
           Submit
         </Button>

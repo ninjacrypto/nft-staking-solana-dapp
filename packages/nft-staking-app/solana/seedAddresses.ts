@@ -1,74 +1,42 @@
 import _ from "lodash"
-import { PublicKey } from "@solana/web3.js"
-import * as anchor from "@project-serum/anchor"
-import { getClusterConstants } from "../constants"
+import { PublicKey, Keypair } from "@solana/web3.js"
+import { utils } from "@project-serum/anchor"
 
-export const getGlobalStateAddress = () => {
-  const { PROGRAM_VIBE_MARKET } = getClusterConstants("PROGRAM_VIBE_MARKET")
-  return PublicKey.findProgramAddress(
-    [Buffer.from("global")],
-    PROGRAM_VIBE_MARKET
+const SEED_USER = "nft_staking_user"
+const SEED_MINT = "nft_staking_mint"
+
+export const generateUuid = (): string => {
+  return Keypair.generate().publicKey.toBase58().slice(0, 6)
+}
+
+export const getUserAddress = async (
+  poolPublicKey: PublicKey,
+  walletPublicKey: PublicKey,
+  programId: PublicKey
+): Promise<[PublicKey, number]> => {
+  return await PublicKey.findProgramAddress(
+    [
+      Buffer.from(utils.bytes.utf8.encode(SEED_USER)),
+      poolPublicKey.toBuffer(),
+      walletPublicKey.toBuffer(),
+    ],
+    programId
   )
 }
 
-export const getCollectionAddress = (
-  marketAddress: PublicKey,
-  index: number
-) => {
-  const { PROGRAM_VIBE_MARKET } = getClusterConstants("PROGRAM_VIBE_MARKET")
-  const indexBuffer = Uint8Array.from(new anchor.BN(index).toArray("le", 4))
-  return PublicKey.findProgramAddress(
-    [marketAddress.toBuffer(), indexBuffer, Buffer.from("collection")],
-    PROGRAM_VIBE_MARKET
+export const getMintStakeAddress = async (
+  poolPublicKey: PublicKey,
+  userPublicKey: PublicKey,
+  uuid: string,
+  programId: PublicKey
+): Promise<[PublicKey, number]> => {
+  return await PublicKey.findProgramAddress(
+    [
+      Buffer.from(utils.bytes.utf8.encode(SEED_MINT)),
+      poolPublicKey.toBuffer(),
+      userPublicKey.toBuffer(),
+      Buffer.from(uuid),
+    ],
+    programId
   )
 }
-
-export const getCollectionAddresses = (
-  marketAddress: PublicKey,
-  numCollections: number
-) =>
-  Promise.all(
-    _.map(_.range(numCollections), async (index) => {
-      const retval = await getCollectionAddress(marketAddress, index)
-      return retval[0]
-    })
-  )
-
-export const getListHeadAddress = (collectionAddress: PublicKey) => {
-  const { PROGRAM_VIBE_MARKET } = getClusterConstants("PROGRAM_VIBE_MARKET")
-  return PublicKey.findProgramAddress(
-    [collectionAddress.toBuffer(), Buffer.from("head")],
-    PROGRAM_VIBE_MARKET
-  )
-}
-
-export const getListTailAddress = (collectionAddress: PublicKey) => {
-  const { PROGRAM_VIBE_MARKET } = getClusterConstants("PROGRAM_VIBE_MARKET")
-  return PublicKey.findProgramAddress(
-    [collectionAddress.toBuffer(), Buffer.from("tail")],
-    PROGRAM_VIBE_MARKET
-  )
-}
-
-export const getPriceModelAddress = (
-  marketAddress: PublicKey,
-  index: number
-) => {
-  const { PROGRAM_VIBE_MARKET } = getClusterConstants("PROGRAM_VIBE_MARKET")
-  const indexBuffer = Uint8Array.from(new anchor.BN(index).toArray("le", 4))
-  return PublicKey.findProgramAddress(
-    [marketAddress.toBuffer(), indexBuffer, Buffer.from("price_model")],
-    PROGRAM_VIBE_MARKET
-  )
-}
-
-export const getPriceModelAddresses = (
-  marketAddress: PublicKey,
-  numPriceModels: number
-) =>
-  Promise.all(
-    _.map(_.range(numPriceModels), async (index) => {
-      const retval = await getPriceModelAddress(marketAddress, index)
-      return retval[0]
-    })
-  )
