@@ -29,29 +29,20 @@ pub fn get_config_count(data: &Ref<&mut [u8]>) -> core::result::Result<usize, Pr
     return Ok(u32::from_le_bytes(*array_ref![data, CONFIG_SIZE_START, 4]) as usize);
 }
 
-pub fn check_mint_address(data: &Ref<&mut [u8]>, mint_address: &[u8; 32]) -> core::result::Result<bool, ProgramError> {
-    let mut position = CONFIG_SIZE_START + 4;
+pub fn check_mint_address(data: &Ref<&mut [u8]>, mint_address: &[u8; 32], mint_index: usize) -> core::result::Result<bool, ProgramError> {
+    let mut position = CONFIG_SIZE_START + 4 + (mint_index * PUBKEY_SIZE);
     msg!("begin check");
-    loop {
-        let current_mint_address = &data[position..position + PUBKEY_SIZE];
-        let mut is_found = true;
-        for v in current_mint_address.iter().zip(mint_address.iter()) {
-            let (v1, v2) = v;
-            if v1 != v2 {
-                is_found = false;
-                break;
-            }
-        }
-        if is_found {
-            msg!("Mint address found in position {}", position);
-            return Ok(true);
-        }
-        position = position + PUBKEY_SIZE;
-        if position >= data.len() {
+    let current_mint_address = &data[position..position + PUBKEY_SIZE];
+    let mut is_found = true;
+    for v in current_mint_address.iter().zip(mint_address.iter()) {
+        let (v1, v2) = v;
+        if v1 != v2 {
+            is_found = false;
             break;
         }
     }
-    return Ok(false);
+    msg!("Mint address found: {}", is_found);
+    return Ok(is_found)
 }
 
 #[program]
@@ -282,7 +273,7 @@ pub mod nft_staking {
     }
 
     // staking
-    pub fn stake(ctx: Context<Stake>, _mint_staked_bump: u8, uuid: String) -> ProgramResult {
+    pub fn stake(ctx: Context<Stake>, _mint_staked_bump: u8, uuid: String, mint_index: u32) -> ProgramResult {
         let pool_account = &mut ctx.accounts.pool_account;
         if pool_account.paused || !pool_account.is_initialized {
             return Err(ErrorCode::PoolPaused.into());
@@ -293,7 +284,7 @@ pub mod nft_staking {
 
         // check constraint = config.mint_addresses.iter().any(| x | * x == stake_from_account.mint)
         let stake_from_account = &mut ctx.accounts.stake_from_account;
-        if check_mint_address(&account.data.borrow(), &stake_from_account.mint.to_bytes())? == false {
+        if check_mint_address(&account.data.borrow(), &stake_from_account.mint.to_bytes(), mint_index as usize)? == false {
             msg!("Mint address is not stakable!");
             return Err(ErrorCode::InvalidMint.into());
         }
@@ -622,6 +613,7 @@ pub struct Pause<'info> {
     // Pool Account
     #[account(mut,
     constraint = pool_account.is_initialized == true,
+    has_one = authority,
     )]
     pool_account: ProgramAccount<'info, Pool>,
 }
@@ -728,7 +720,7 @@ pub struct CreateUser<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(mint_staked_bump: u8, uuid: String)]
+#[instruction(mint_staked_bump: u8, uuid: String, mint_index: u32)]
 pub struct Stake<'info> {
     #[account(mut, signer)]
     staker: AccountInfo<'info>,

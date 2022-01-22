@@ -337,6 +337,10 @@
         {
           "name": "uuid",
           "type": "string"
+        },
+        {
+          "name": "mintIndex",
+          "type": "u32"
         }
       ]
     },
@@ -593,6 +597,12 @@
           {
             "name": "numMint",
             "type": "u32"
+          },
+          {
+            "name": "mints",
+            "type": {
+              "vec": "publicKey"
+            }
           }
         ]
       }
@@ -741,8 +751,5 @@
       "name": "InvalidMint",
       "msg": "Mint address is not stakable!"
     }
-  ],
-  "metadata": {
-    "address": "Fymtt5B6Y9dQMHDFagD1puVbtQsHk7fL7CYBtyx1BfTW"
-  }
+  ]
 }
