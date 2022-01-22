@@ -5,9 +5,13 @@ import { PublicKey } from "@solana/web3.js"
 import { HToken } from "../models/tokenAccount"
 import { MetaplexMetadata } from "../models/metadata"
 import scriptConfig from "../scripts/scriptConfig.json"
-import { AnchorAccountCacheContext } from "../contexts/AnchorAccountsCacheProvider"
+import {
+  AnchorAccountCacheContext,
+  useAnchorAccountCache,
+} from "../contexts/AnchorAccountsCacheProvider"
 import { useAccounts } from "./useAccounts"
 import { useMetaplexMetadataAddresses } from "./useSeedAddress"
+import { useTokenAccounts } from "./useTokenAccounts"
 
 export const useNftAccounts = (ownerPublicKey: PublicKey | undefined) => {
   const anchorAccountCache = useContext(AnchorAccountCacheContext)
@@ -46,9 +50,10 @@ export const useNftAccounts = (ownerPublicKey: PublicKey | undefined) => {
 
 export type MonketteAccount = [MetaplexMetadata, any, string]
 
-export const useMonketteAccounts = (ownerPublicKey: PublicKey | undefined) => {
+export const useMonketteAccounts = (
+  nftAccounts: Record<string, HToken> | undefined
+) => {
   const { validNftMints } = scriptConfig
-  const nftAccounts = useNftAccounts(ownerPublicKey)
 
   const monketteAccounts = useMemo(() => {
     if (!nftAccounts || _.isEmpty(validNftMints)) {
@@ -112,4 +117,30 @@ export const useMonketteAccounts = (ownerPublicKey: PublicKey | undefined) => {
   }, [_.size(metadataAddresses), _.size(metaplexMetadatas)])
 
   return monketteData
+}
+
+export const useNftMintAccounts = (
+  ownerPublicKey?: PublicKey,
+  mintAddresses?: PublicKey[]
+) => {
+  const tokenAccounts = useTokenAccounts(ownerPublicKey)
+
+  return useMemo(() => {
+    if (_.isEmpty(tokenAccounts)) {
+      return
+    }
+    const mintAddressSet = new Set(
+      _.map(mintAddresses, (mintAddress) => mintAddress.toString())
+    )
+    return _.reduce(
+      tokenAccounts,
+      (accum: Record<string, HToken>, tokenAccount) => {
+        if (mintAddressSet.has(tokenAccount.data.mint)) {
+          accum[tokenAccount.publicKey.toString()] = tokenAccount
+        }
+        return accum
+      },
+      {}
+    )
+  }, [tokenAccounts])
 }

@@ -3,6 +3,7 @@ import * as HToken from "./tokenAccount"
 import * as HMint from "./mint"
 import * as MetaplexMetadata from "./metadata"
 import * as User from "./user"
+import * as MintStaked from "./mintStaked"
 
 export const AccountMap = {
   [Pool.AccountType]: Pool,
@@ -10,6 +11,7 @@ export const AccountMap = {
   [HMint.AccountType]: HMint,
   [MetaplexMetadata.AccountType]: MetaplexMetadata,
   [User.AccountType]: User,
+  [MintStaked.AccountType]: MintStaked,
 }
 
 export type TAccountMap = {
@@ -18,6 +20,7 @@ export type TAccountMap = {
   [HMint.AccountType]: HMint.HMint
   [MetaplexMetadata.AccountType]: MetaplexMetadata.MetaplexMetadata
   [User.AccountType]: User.User
+  [MintStaked.AccountType]: MintStaked.MintStaked
 }
 
 export type AccountTypes = keyof typeof AccountMap
@@ -32,4 +35,4 @@ export type FilteredSpecificAccountTypeMap<T extends AccountTypes> = {
   [key: string]: SpecificAccountType<T>
 }
 
-export { Pool, HToken, HMint, MetaplexMetadata, User }
+export { Pool, HToken, HMint, MetaplexMetadata, User, MintStaked }

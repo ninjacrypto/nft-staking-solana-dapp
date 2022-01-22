@@ -2,7 +2,12 @@ import _ from "lodash"
 import { Button, Heading, Image, Text, Flex } from "@chakra-ui/react"
 import { PublicKey } from "@solana/web3.js"
 import { Center, VStack, HStack, StackDivider, Box } from "@chakra-ui/layout"
-import { useMonketteAccounts, MonketteAccount } from "../hooks/useNftAccounts"
+import {
+  useMonketteAccounts,
+  MonketteAccount,
+  useNftAccounts,
+  useNftMintAccounts,
+} from "../hooks/useNftAccounts"
 import useWalletPublicKey from "../hooks/useWalletPublicKey"
 import StakingModal from "../components/StakingModal"
 import { useEffect, useState } from "react"
@@ -11,27 +16,36 @@ import useTxCallback from "../hooks/useTxCallback"
 import { useCallback } from "react"
 import { useAnchorAccountCache } from "../contexts/AnchorAccountsCacheProvider"
 import stakeNft from "../solana/scripts/stakeNft"
+import unstakeNft from "../solana/scripts/unstakeNft"
 import claimReward from "../solana/scripts/claimReward"
 import { useUserAccountAddress } from "../hooks/useSeedAddress"
-import { useAccount } from "../hooks/useAccounts"
+import { useAccount, useAccounts } from "../hooks/useAccounts"
 import { getClusterConstants } from "../constants"
+import UnstakingModal from "../components/UnstakingModal"
 
 enum PAGE_TABS {
-  MY_MONKETTES,
-  STAKED_MONKETTES,
-  CLAIM_VIBE,
+  STAKE,
+  UNSTAKE,
+  CLAIM,
 }
 
 const ManagePoolPage = () => {
   const walletPublicKey = useWalletPublicKey()
   const anchorAccountCache = useAnchorAccountCache()
 
-  const [selectedTab, setSelectedTab] = useState<PAGE_TABS>(
-    PAGE_TABS.MY_MONKETTES
+  const [selectedTab, setSelectedTab] = useState<PAGE_TABS>(PAGE_TABS.STAKE)
+
+  const userAccountAddress = useUserAccountAddress(walletPublicKey)
+  const [userAccount] = useAccount("user", userAccountAddress)
+  const [mintStakedAccount] = useAccount(
+    "mintStaked",
+    userAccount?.data.mintStaked,
+    { subscribe: true }
   )
 
-  // MY_MONKETTES
-  const monketteAccounts = useMonketteAccounts(walletPublicKey)
+  // STAKE
+  const nftAccounts = useNftAccounts(walletPublicKey)
+  const monketteAccounts = useMonketteAccounts(nftAccounts)
 
   const [selectedMonkette, setSelectedMonkette] = useState<
     MonketteAccount | undefined
@@ -64,31 +78,40 @@ const ManagePoolPage = () => {
     error: "Transaction failed",
   })
 
-  const { ADDRESS_STAKING_POOL } = getClusterConstants("ADDRESS_STAKING_POOL")
-  const [poolAccount] = useAccount("pool", ADDRESS_STAKING_POOL)
-  console.log("poolAccount", poolAccount)
-  console.log(
-    "rewardRatePerToken",
-    poolAccount?.data.rewardRatePerToken.toString()
+  // UNSTAKE
+  const [stakedNftAccounts] = useAccounts(
+    "hTokenAccount",
+    mintStakedAccount?.data.mintAccounts
   )
-
-  // CLAIM_VIBE
-  const userAccountAddress = useUserAccountAddress(walletPublicKey)
-  const [userAccount] = useAccount("user", userAccountAddress)
-
-  useEffect(() => {
-    if (!anchorAccountCache.isEnabled || !userAccount) {
-      return
+  const stakedMonketteAccounts = useMonketteAccounts(stakedNftAccounts)
+  const _unstakeNftClickHandler = useCallback(async () => {
+    if (
+      !anchorAccountCache.isEnabled ||
+      !walletPublicKey ||
+      !selectedMonkette
+    ) {
+      throw new Error("Invalid data")
     }
-    ;(async function () {
-      console.log(
-        await anchorAccountCache.nftStakingProgram.account.mintStaked.fetch(
-          userAccount?.data.mintStaked
-        )
-      )
-    })()
-  }, [userAccount])
 
+    await unstakeNft(
+      anchorAccountCache,
+      walletPublicKey,
+      new PublicKey(selectedMonkette[2])
+    )
+    setSelectedMonkette(undefined)
+  }, [
+    anchorAccountCache.isEnabled,
+    walletPublicKey?.toString(),
+    selectedMonkette,
+  ])
+
+  const unstakeNftClickHandler = useTxCallback(_unstakeNftClickHandler, {
+    info: "Unstake NFT...",
+    success: "NFT Unstaked!",
+    error: "Transaction failed",
+  })
+
+  // CLAIM
   const _claimRewardClickHandler = useCallback(async () => {
     if (!anchorAccountCache.isEnabled || !walletPublicKey) {
       throw new Error("Invalid data")
@@ -105,10 +128,16 @@ const ManagePoolPage = () => {
   return (
     <Box>
       <StakingModal
-        isOpen={!!selectedMonkette}
+        isOpen={selectedTab === PAGE_TABS.STAKE && !!selectedMonkette}
         selectedMonkette={selectedMonkette}
         onClose={setSelectedMonkette.bind(null, undefined)}
         onSubmit={stakeNftClickHandler}
+      />
+      <UnstakingModal
+        isOpen={selectedTab === PAGE_TABS.UNSTAKE && !!selectedMonkette}
+        selectedMonkette={selectedMonkette}
+        onClose={setSelectedMonkette.bind(null, undefined)}
+        onSubmit={unstakeNftClickHandler}
       />
       <VStack w="full" spacing={16} textAlign="center">
         <Heading color="brandPink.200">Monkette Staking!</Heading>
@@ -117,9 +146,9 @@ const ManagePoolPage = () => {
             w="48"
             color="white"
             size={"md"}
-            onClick={setSelectedTab.bind(null, PAGE_TABS.MY_MONKETTES)}
+            onClick={setSelectedTab.bind(null, PAGE_TABS.STAKE)}
             backgroundColor={
-              selectedTab === PAGE_TABS.MY_MONKETTES
+              selectedTab === PAGE_TABS.STAKE
                 ? "brandPink.900"
                 : "brandPink.200"
             }
@@ -130,9 +159,9 @@ const ManagePoolPage = () => {
             w="48"
             color="white"
             size={"md"}
-            onClick={setSelectedTab.bind(null, PAGE_TABS.STAKED_MONKETTES)}
+            onClick={setSelectedTab.bind(null, PAGE_TABS.UNSTAKE)}
             backgroundColor={
-              selectedTab === PAGE_TABS.STAKED_MONKETTES
+              selectedTab === PAGE_TABS.UNSTAKE
                 ? "brandPink.900"
                 : "brandPink.200"
             }
@@ -143,9 +172,9 @@ const ManagePoolPage = () => {
             w="48"
             color="white"
             size={"md"}
-            onClick={setSelectedTab.bind(null, PAGE_TABS.CLAIM_VIBE)}
+            onClick={setSelectedTab.bind(null, PAGE_TABS.CLAIM)}
             backgroundColor={
-              selectedTab === PAGE_TABS.CLAIM_VIBE
+              selectedTab === PAGE_TABS.CLAIM
                 ? "brandPink.900"
                 : "brandPink.200"
             }
@@ -154,7 +183,7 @@ const ManagePoolPage = () => {
           </Button>
         </HStack>
 
-        {selectedTab === PAGE_TABS.MY_MONKETTES && monketteAccounts && (
+        {selectedTab === PAGE_TABS.STAKE && monketteAccounts && (
           <VStack>
             <Text>(Click to stake)</Text>
             <Center w="120" flexWrap={"wrap"}>
@@ -181,7 +210,34 @@ const ManagePoolPage = () => {
           </VStack>
         )}
 
-        {selectedTab === PAGE_TABS.CLAIM_VIBE && userAccount && (
+        {selectedTab === PAGE_TABS.UNSTAKE && userAccount && (
+          <VStack>
+            <Text>(Click to unstake)</Text>
+            <Center w="120" flexWrap={"wrap"}>
+              {_.map(stakedMonketteAccounts, (monketteAccount, key) => {
+                return (
+                  <Box
+                    key={key}
+                    m="4"
+                    cursor="pointer"
+                    onClick={setSelectedMonkette.bind(null, monketteAccount)}
+                  >
+                    <Image
+                      alt="selected nft"
+                      w="36"
+                      objectFit="cover"
+                      boxShadow="md"
+                      borderRadius="lg"
+                      src={monketteAccount[1].image}
+                    />
+                  </Box>
+                )
+              })}
+            </Center>
+          </VStack>
+        )}
+
+        {selectedTab === PAGE_TABS.CLAIM && userAccount && (
           <VStack w="96" spacing={8}>
             <Flex
               w="full"

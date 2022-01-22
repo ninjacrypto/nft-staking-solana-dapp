@@ -14,7 +14,7 @@ export const useBalance = (
     }
     ;(async function () {
       const balance =
-        await anchorAccountCache.vibeMarketProgram.provider.connection.getBalance(
+        await anchorAccountCache.nftStakingProgram.provider.connection.getBalance(
           ownerPublicKey
         )
       setBalance(balance)
