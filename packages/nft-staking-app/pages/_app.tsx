@@ -1,4 +1,5 @@
 import { ReactNode, useState, useEffect } from "react"
+import Head from "next/head"
 import type { AppProps } from "next/app"
 import dynamic from "next/dynamic"
 import { ChakraProvider } from "@chakra-ui/react"
@@ -50,17 +51,25 @@ const AccountsCacheProvidersSetup = ({ children }: { children: ReactNode }) => {
 
 function VibeMarketApp({ Component, pageProps }: AppProps) {
   return (
-    <ChakraProvider theme={theme}>
-      <ClusterContextProvider>
-        <WalletConnectionProvider>
-          <AccountsCacheProvidersSetup>
-            <SidebarWithHeader>
-              <Component {...pageProps} />
-            </SidebarWithHeader>
-          </AccountsCacheProvidersSetup>
-        </WalletConnectionProvider>
-      </ClusterContextProvider>
-    </ChakraProvider>
+    <>
+      <Head>
+        <link
+          href="https://solanamonkette.business/static/css/main.92f3fdef.chunk.css"
+          rel="stylesheet"
+        />
+      </Head>
+      <ChakraProvider theme={theme}>
+        <ClusterContextProvider>
+          <WalletConnectionProvider>
+            <AccountsCacheProvidersSetup>
+              <SidebarWithHeader>
+                <Component {...pageProps} />
+              </SidebarWithHeader>
+            </AccountsCacheProvidersSetup>
+          </WalletConnectionProvider>
+        </ClusterContextProvider>
+      </ChakraProvider>
+    </>
   )
 }
 

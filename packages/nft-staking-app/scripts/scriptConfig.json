@@ -3,7 +3,7 @@
   "keypair": "./devnet-wallet.json",
   "maxNumNftMints": 10000,
   "rewardDuration": 31536000,
-  "rewardMint": "DgNPX1ESu2G3Hrjex9jB8FtC8gv4ZA5uZWsLCnn4rbe3",
+  "rewardMint": "3aMbgP7aGsP1sVcFKc6j65zu7UiziP57SMFzf6ptiCSX",
   "preview": false,
   "validNftMints": [
     "3yhe9ctad2gKtKR3KPeNCRTkdt3cAw7zFkx2KaEMmsXJ",

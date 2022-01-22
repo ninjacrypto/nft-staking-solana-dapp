@@ -1,8 +1,8 @@
-import { Provider, Program } from "@project-serum/anchor"
+import { Provider, Program, Idl } from "@project-serum/anchor"
+import NftStakingIdl from "./nftStakingIdl.json"
 import { getClusterConstants } from "../constants"
-import { VibeMarket } from "./vibeMarket"
 
-export const getVibeMarketProgram = (provider: Provider) => {
-  const { PROGRAM_VIBE_MARKET } = getClusterConstants("PROGRAM_VIBE_MARKET")
-  return Program.at<VibeMarket>(PROGRAM_VIBE_MARKET, provider)
+export const getNftStakingProgram = (provider: Provider) => {
+  const { PROGRAM_NFT_STAKING } = getClusterConstants("PROGRAM_NFT_STAKING")
+  return new Program(NftStakingIdl as Idl, PROGRAM_NFT_STAKING, provider)
 }

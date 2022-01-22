@@ -1,84 +1,48 @@
+import _ from "lodash"
 import { useState, useMemo, useEffect } from "react"
 import { PublicKey } from "@solana/web3.js"
-import {
-  getGlobalStateAddress,
-  getCollectionAddresses,
-  getPriceModelAddress,
-  getPriceModelAddresses,
-} from "../solana/seedAddresses"
+import { FilteredSpecificAccountTypeMap } from "../models"
+import { programs } from "@metaplex/js"
+
+const {
+  metadata: { Metadata },
+} = programs
 
 type MaybePublicKey = PublicKey | undefined
 
-export const useGlobalStateAddress = () => {
-  const [seedAddress, setSeedAddress] = useState<MaybePublicKey>(undefined)
-  useMemo(() => {
-    getGlobalStateAddress().then(([seedAddress]) => {
-      setSeedAddress(seedAddress)
-    })
-  }, [])
-  return seedAddress
-}
-
-export const useCollectionAddresses = (
-  marketAddress: MaybePublicKey,
-  numCollections: number | undefined
+export const useMetaplexMetadataAddresses = (
+  nftAccounts?: FilteredSpecificAccountTypeMap<"hTokenAccount">
 ) => {
-  const [seedAddresses, setSeedAddresses] = useState<PublicKey[] | undefined>(
-    undefined
-  )
-  useEffect(() => {
-    ;(async function () {
-      if (!marketAddress || !numCollections) {
-        return
-      }
-      const collectionAddresses = await getCollectionAddresses(
-        marketAddress,
-        numCollections
-      )
-      setSeedAddresses(collectionAddresses)
-    })()
-  }, [marketAddress?.toString(), numCollections])
-  return seedAddresses
-}
+  const [seedAddresses, setSeedAddresses] = useState<
+    { [key: string]: PublicKey } | undefined
+  >()
 
-export const usePriceModelAddress = (
-  marketAddress: MaybePublicKey,
-  numPriceModels: number | undefined
-) => {
-  const [seedAddress, setSeedAddress] = useState<MaybePublicKey>(undefined)
   useEffect(() => {
+    if (!nftAccounts) {
+      setSeedAddresses(undefined)
+      return
+    }
     ;(async function () {
-      if (!marketAddress || !numPriceModels) {
-        return
-      }
-      const [priceModelAddress] = await getPriceModelAddress(
-        marketAddress,
-        numPriceModels
+      const metadataPublicKeysList = await Promise.all(
+        _.map(nftAccounts, async (nftAccount) => {
+          const mintPublicKey = new PublicKey(nftAccount.data.mint)
+          const metadataPublicKey = await Metadata.getPDA(
+            mintPublicKey.toString()
+          )
+          return [nftAccount.publicKey, metadataPublicKey]
+        })
       )
-      setSeedAddress(priceModelAddress)
-    })()
-  }, [marketAddress?.toString(), numPriceModels])
-  return seedAddress
-}
-
-export const usePriceModelAddresses = (
-  marketAddress: MaybePublicKey,
-  numPriceModels: number | undefined
-) => {
-  const [seedAddresses, setSeedAddresses] = useState<PublicKey[] | undefined>(
-    undefined
-  )
-  useEffect(() => {
-    ;(async function () {
-      if (!marketAddress || !numPriceModels) {
-        return
-      }
-      const priceModelAddresses = await getPriceModelAddresses(
-        marketAddress,
-        numPriceModels
+      const metadataPublicKeys = _.reduce(
+        metadataPublicKeysList,
+        (accum: { [key: string]: PublicKey }, value) => {
+          const [nftAccountPublicKey, metadataPublicKey] = value
+          accum[nftAccountPublicKey.toString()] = metadataPublicKey
+          return accum
+        },
+        {}
       )
-      setSeedAddresses(priceModelAddresses)
+      setSeedAddresses(metadataPublicKeys)
     })()
-  }, [marketAddress?.toString(), numPriceModels])
+  }, [_.size(nftAccounts)])
   return seedAddresses
 }

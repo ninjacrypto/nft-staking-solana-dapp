@@ -18,9 +18,7 @@ const main = async ({
     throw new Error("Must provide pool public key")
   }
   const poolPublicKey = new PublicKey(args["pool-key"])
-
   const poolAccountInfo = await program.account.pool.fetch(poolPublicKey)
-  console.log("poolAccountInfo", poolAccountInfo)
 
   let batchSize = 20
   if (mintAddresses.length < batchSize) {

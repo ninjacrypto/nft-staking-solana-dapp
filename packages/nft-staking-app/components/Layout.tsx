@@ -1,7 +1,7 @@
 import _ from "lodash"
 import Image from "next/image"
 import Link from "next/link"
-import React, { ReactNode, useEffect, useRef } from "react"
+import React, { ReactNode } from "react"
 import {
   IconButton,
   Box,
@@ -17,24 +17,13 @@ import {
   FlexProps,
   Badge,
   Text,
-  useBreakpointValue,
 } from "@chakra-ui/react"
-import {
-  FiAlignJustify,
-  FiMenu,
-  FiLayers,
-  FiDollarSign,
-  FiClipboard,
-  FiImage,
-  FiLogOut,
-} from "react-icons/fi"
+import { FiMenu, FiClipboard } from "react-icons/fi"
 import { IconType } from "react-icons"
 import { ReactText } from "react"
 import { Wallet } from "./Wallet"
 import { useIsAdmin } from "../hooks/useIsAdmin"
 import { getClusterConstants } from "../constants"
-import { useAccount, useAccounts } from "../hooks/useAccounts"
-import { useCollectionAddresses } from "../hooks/useSeedAddress"
 
 interface LinkItemProps {
   name: string
@@ -47,11 +36,6 @@ const AdminLinkItems: Array<LinkItemProps> = [
     name: "Manage Pool",
     icon: FiClipboard,
     href: "/admin/manage-pool",
-  },
-  {
-    name: "Fund Pool",
-    icon: FiDollarSign,
-    href: "/admin/fund-pool",
   },
 ]
 
