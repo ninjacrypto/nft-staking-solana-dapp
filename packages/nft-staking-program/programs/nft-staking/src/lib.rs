@@ -13,6 +13,7 @@ use arrayref::array_ref;
 const PREFIX: &str = "nft_staking";
 const PREFIX_USER: &str = "nft_staking_user";
 const PREFIX_MINT: &str = "nft_staking_mint";
+const PREFIX_UNSTAKE_PROOF: &str = "nft_unstake_proof";
 const PRECISION: u128 = u64::MAX as u128;
 
 declare_id!("paramKFFuRPLVXZWjDRbnk5xKemduYZUW2BqUp7xZD3");
@@ -54,7 +55,12 @@ pub mod nft_staking {
     // initialize staking pool
     pub fn initialize_pool(
         ctx: Context<InitializePool>,
-        _pool_bump: u8, uuid: String, num_mint: u32, _reward_bump: u8, reward_duration: u64,
+        uuid: String,
+        num_mint: u32,
+        reward_duration: u64,
+        unstake_duration: u64,
+        _pool_bump: u8,
+        _reward_bump: u8,
     ) -> ProgramResult {
         if num_mint <= 0 {
             return Err(ErrorCode::InsufficientTokenStake.into());
@@ -79,6 +85,7 @@ pub mod nft_staking {
         pool_account.reward_rate_per_token = 1;
         pool_account.reward_duration = reward_duration;
         pool_account.reward_duration_end = 0;
+        pool_account.unstake_duration = unstake_duration;
         pool_account.token_stake_count = 0;
         pool_account.user_count = 0;
 
@@ -294,11 +301,9 @@ pub mod nft_staking {
         pool_account.last_update_time = now;
 
         let user_account = &mut ctx.accounts.user_account;
-        let user_opt = Some(user_account);
-
         update_rewards(
             pool_account,
-            user_opt,
+            user_account,
         ).unwrap();
 
         // update user account
@@ -351,8 +356,7 @@ pub mod nft_staking {
         Ok(())
     }
 
-    // unstake
-    pub fn unstake(ctx: Context<Unstake>, _mint_staked_bump: u8, uuid: String) -> ProgramResult {
+    pub fn begin_unstake(ctx: Context<BeginUnstake>, _unstake_proof_bump: u8) -> ProgramResult {
         let pool_account = &mut ctx.accounts.pool_account;
         if pool_account.paused || !pool_account.is_initialized {
             return Err(ErrorCode::PoolPaused.into());
@@ -363,27 +367,47 @@ pub mod nft_staking {
         pool_account.token_stake_count = pool_account.token_stake_count.checked_sub(1).unwrap();
 
         let user_account = &mut ctx.accounts.user_account;
-        let user_opt = Some(user_account);
         update_rewards(
             pool_account,
-            user_opt,
+            user_account,
         ).unwrap();
+        user_account.mint_staked_count = user_account.mint_staked_count.checked_sub(1).unwrap();
 
-        ctx.accounts.user_account.mint_staked = *ctx.accounts.mint_staked.to_account_info().key;
-        ctx.accounts.user_account.mint_staked_count = ctx.accounts.user_account.mint_staked_count.checked_sub(1).unwrap();
-        ctx.accounts.user_account.uuid = uuid;
-
-        // count of user_account.mint_staked must be >= 1
         let mint_staked = &mut ctx.accounts.mint_staked;
-        mint_staked.pool = *ctx.accounts.pool_account.to_account_info().key;
-        mint_staked.user_account = *ctx.accounts.user_account.to_account_info().key;
-
-        let current_mint_staked = &mut ctx.accounts.current_mint_staked;
-        for mint_address in &current_mint_staked.mint_accounts {
+        let mut new_mint_accounts = vec!();
+        for mint_address in &mint_staked.mint_accounts {
             if mint_address != ctx.accounts.unstake_from_account.to_account_info().key {
-                mint_staked.mint_accounts.push(*mint_address);
+                new_mint_accounts.push(*mint_address);
             }
         }
+        mint_staked.mint_accounts = new_mint_accounts;
+
+        let unstake_proof = &mut ctx.accounts.unstake_proof;
+        unstake_proof.user_account = *user_account.to_account_info().key;
+        unstake_proof.token_account = *ctx.accounts.unstake_from_account.to_account_info().key;
+        unstake_proof.unstake_timestamp = now;
+
+        Ok(())
+    }
+
+    // unstake
+    pub fn unstake(ctx: Context<Unstake>) -> ProgramResult {
+        let pool_account = &ctx.accounts.pool_account;
+        if pool_account.paused || !pool_account.is_initialized {
+            return Err(ErrorCode::PoolPaused.into());
+        }
+        
+        let now = clock::Clock::get().unwrap().unix_timestamp.try_into().unwrap();
+        let unstake_proof = &ctx.accounts.unstake_proof;
+        if (unstake_proof.unstake_timestamp + pool_account.unstake_duration) > now {
+            return Err(ErrorCode::UnstakeNotReady.into());
+        }
+
+        let user_account = &mut ctx.accounts.user_account;
+        update_rewards(
+            pool_account,
+            user_account,
+        ).unwrap();
 
         // Transfer token authority
         {
@@ -419,10 +443,9 @@ pub mod nft_staking {
         }
 
         let user_account = &mut ctx.accounts.user_account;
-        let user_opt = Some(user_account);
         update_rewards(
             pool_account,
-            user_opt,
+            user_account,
         ).unwrap();
 
         // Transfer rewards from the pool reward vaults to user reward vaults.
@@ -481,10 +504,9 @@ pub mod nft_staking {
         pool_account.user_count = pool_account.user_count.checked_sub(1).unwrap();
 
         let user_account = &mut ctx.accounts.user_account;
-        let user_opt = Some(user_account);
         update_rewards(
             pool_account,
-            user_opt,
+            user_account,
         ).unwrap();
 
         if ctx.accounts.user_account.mint_staked_count > 0 {
@@ -542,7 +564,14 @@ pub mod nft_staking {
 }
 
 #[derive(Accounts)]
-#[instruction(pool_bump: u8, uuid: String, num_mint: u32, reward_bump: u8, reward_duration: u64)]
+#[instruction(
+    uuid: String,
+    num_mint: u32,
+    reward_duration: u64,
+    unstake_duration: u64,
+    _pool_bump: u8,
+    _reward_bump: u8,
+)]
 pub struct InitializePool<'info> {
     // The pool authority
     #[account(mut, signer)]
@@ -551,7 +580,7 @@ pub struct InitializePool<'info> {
     // The pool account, it holds all necessary info about the pool
     #[account(init,
     seeds = [PREFIX.as_bytes(), authority.key.as_ref(), config.key().as_ref()],
-    bump = pool_bump,
+    bump = _pool_bump,
     payer = authority,
     space = POOL_SIZE)]
     pool_account: ProgramAccount<'info, Pool>,
@@ -572,7 +601,7 @@ pub struct InitializePool<'info> {
     pool_account.key().as_ref(),
     authority.key.as_ref(),
     reward_mint.key.as_ref()],
-    bump = reward_bump,
+    bump = _reward_bump,
     payer = authority
     )]
     reward_vault: Box<Account<'info, TokenAccount>>,
@@ -797,77 +826,94 @@ pub struct Stake<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(mint_staked_bump: u8, uuid: String)]
+#[instruction(_unstake_proof_bump: u8)]
+pub struct BeginUnstake<'info> {
+    #[account(signer)]
+    staker: AccountInfo<'info>,
+
+    #[account(mut)]
+    pool_account: ProgramAccount<'info, Pool>,
+
+    #[account(
+        mut,
+        constraint = user_account.user == *staker.key,
+        constraint = user_account.pool == *pool_account.to_account_info().key,
+        constraint = user_account.mint_staked == *mint_staked.to_account_info().key,
+    )]
+    user_account: ProgramAccount<'info, User>,
+
+    #[account(
+        mut,
+        constraint = mint_staked.pool == *pool_account.to_account_info().key,
+        constraint = mint_staked.user_account == *user_account.to_account_info().key,
+    )]
+    mint_staked: ProgramAccount<'info, MintStaked>,
+
+    #[account(
+        constraint = mint_staked.mint_accounts.iter().any(|key| *key == *unstake_from_account.to_account_info().key),
+    )]
+    unstake_from_account: Box<Account<'info, TokenAccount>>,
+
+    #[account(
+        init,
+        payer = staker,
+        seeds = [
+            PREFIX_UNSTAKE_PROOF.as_bytes(),
+            user_account.to_account_info().key.as_ref(),
+            unstake_from_account.mint.as_ref(),
+        ],
+        bump = _unstake_proof_bump,
+    )]
+    unstake_proof: ProgramAccount<'info, UnstakeProof>,
+
+    rent: Sysvar<'info, Rent>,
+
+    system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 pub struct Unstake<'info> {
     #[account(mut, signer)]
     staker: AccountInfo<'info>,
 
-    // Pool Account
-    // verify pool is not paused
-    // verify owner
-    // verify config
-    #[account(mut,
-    has_one = authority,
-    constraint = pool_account.is_initialized == true,
-    constraint = pool_account.paused == false,
-    constraint = pool_account.config == * config.to_account_info().key,
+    #[account(
+        mut,
+        constraint = pool_account.paused == false,
+        constraint = pool_account.is_initialized == true,
+        constraint = pool_account.config == *config.to_account_info().key,
     )]
     pool_account: ProgramAccount<'info, Pool>,
 
-    // the config account
-    #[account(mut, has_one = authority)]
+    #[account(constraint = config.authority == pool_account.authority)]
     config: ProgramAccount<'info, Config>,
 
-    // Pool owner
-    authority: AccountInfo<'info>,
-
-    // user account
-    // verify owner is the signer
-    // verify pool is the pool account
     #[account(
-    mut,
-    constraint = user_account.pool == * pool_account.to_account_info().key,
-    constraint = user_account.user == * staker.key,
-    constraint = user_account.mint_staked == * current_mint_staked.to_account_info().key,
+        mut,
+        constraint = user_account.user == *staker.key,
+        constraint = user_account.pool == *pool_account.to_account_info().key,
     )]
     user_account: ProgramAccount<'info, User>,
 
-    // The nft token account to unstake
-    #[account(mut)]
-    unstake_from_account: Box<Account<'info, TokenAccount>>,
-
-    // new mint staked account to store all the mint staked for the user
     #[account(
-    init,
-    payer = staker,
-    seeds = [
-    PREFIX_MINT.as_bytes(),
-    pool_account.to_account_info().key.as_ref(),
-    user_account.to_account_info().key.as_ref(),
-    uuid.as_bytes(),
-    ],
-    bump = mint_staked_bump,
-    space = MINT_STAKED_SIZE_START + 32 * (user_account.mint_staked_count + 1) as usize)]
-    mint_staked: ProgramAccount<'info, MintStaked>,
-
-    // existing mint staked account
-    // verify the unstake token account is in the mint staked
-    #[account(mut,
-    constraint = current_mint_staked.pool == * pool_account.to_account_info().key,
-    constraint = current_mint_staked.user_account == * user_account.to_account_info().key,
-    constraint = current_mint_staked.mint_accounts.iter().any(| x | * x == * unstake_from_account.to_account_info().key),
-    close = staker,
+        mut,
+        constraint = unstake_proof.user_account == *user_account.to_account_info().key,
+        constraint = unstake_proof.token_account == *unstake_from_account.to_account_info().key,
+        close = staker
     )]
-    current_mint_staked: ProgramAccount<'info, MintStaked>,
+    unstake_proof: ProgramAccount<'info, UnstakeProof>,
 
-    // The rent sysvar
+    #[account(
+        mut,
+        constraint = unstake_proof.token_account == *unstake_from_account.to_account_info().key,
+        close = staker
+    )]
+    unstake_from_account: Account<'info, TokenAccount>,
+
     rent: Sysvar<'info, Rent>,
 
-    // The Token Program
     #[account(address = spl_token::id())]
     token_program: AccountInfo<'info>,
 
-    // system program
     system_program: Program<'info, System>,
 }
 
@@ -1016,6 +1062,8 @@ pub struct Pool {
     pub reward_duration: u64,
     /// Reward duration end
     pub reward_duration_end: u64,
+    /// Unstake duration
+    pub unstake_duration: u64,
     /// Tokens Staked
     pub token_stake_count: u32,
     /// User created
@@ -1089,6 +1137,14 @@ pub struct MintStaked {
     pub mint_accounts: Vec<Pubkey>,  // theroctically account can hold (10,000,000 - 32 - 32)/32 = 312_497 mint addresses
 }
 
+#[account]
+#[derive(Default)]
+pub struct UnstakeProof {
+    pub user_account: Pubkey,
+    pub token_account: Pubkey,
+    pub unstake_timestamp: u64,
+}
+
 #[error]
 pub enum ErrorCode {
     #[msg("Insufficient tokens to stake.")]
@@ -1123,4 +1179,6 @@ pub enum ErrorCode {
     NumericalOverflowError,
     #[msg("Mint address is not stakable!")]
     InvalidMint,
+    #[msg("Unable to unstake token. It is still within the unstaking period.")]
+    UnstakeNotReady,
 }

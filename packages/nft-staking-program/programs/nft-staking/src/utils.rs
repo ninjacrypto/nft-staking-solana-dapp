@@ -8,26 +8,22 @@ const PRECISION: u128 = u64::MAX as u128;
 // update user pending reward, update user last update time
 #[inline(always)]
 pub fn update_rewards(
-    pool: &mut ProgramAccount<Pool>,
-    user: Option<&mut ProgramAccount<User>>,
+    pool: &ProgramAccount<Pool>,
+    user: &mut ProgramAccount<User>,
 ) -> ProgramResult {
     let clock = clock::Clock::get().unwrap();
-
     let now = clock.unix_timestamp.try_into().unwrap();
-
-    if let Some(u) = user {
-        // calculate time elapsed since last update
-        let time_diff = std::cmp::max(now - u.last_update_time, 0 as u64);
-        // update user reward to pass it to pending reward
-        u.reward_earned_pending = earned(
-            time_diff,
-            u.mint_staked_count,
-            pool.reward_rate_per_token,
-            u.reward_earned_pending,
-        );
-        // update time in user account
-        u.last_update_time = now;
-    }
+    // calculate time elapsed since last update
+    let time_diff = std::cmp::max(now - user.last_update_time, 0 as u64);
+    // update user reward to pass it to pending reward
+    user.reward_earned_pending = earned(
+        time_diff,
+        user.mint_staked_count,
+        pool.reward_rate_per_token,
+        user.reward_earned_pending,
+    );
+    // update time in user account
+    user.last_update_time = now;
     Ok(())
 }
 
@@ -53,5 +49,12 @@ pub fn earned(
         .unwrap()
         .try_into()
         .unwrap();
+
+    msg!("reward_rate_per_token {}", reward_rate_per_token);
+    msg!("precision {}", PRECISION);
+    msg!("balance_staked {}", balance_staked);
+    msg!("elapsed_time {}", elapsed_time);
+    msg!("user_reward_per_token_pending {}", user_reward_per_token_pending);
+    msg!("reward_earned_pending {}", earned);
     return earned;
 }
