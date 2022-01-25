@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect } from "react"
 import { PublicKey } from "@solana/web3.js"
 import { FilteredSpecificAccountTypeMap } from "../models"
 import { programs } from "@metaplex/js"
-import { getUserAddress } from "../solana/seedAddresses"
+import { getUnstakeProofAddress, getUserAddress } from "../solana/seedAddresses"
 import { getClusterConstants } from "../constants"
 
 const {
@@ -72,4 +72,47 @@ export const useUserAccountAddress = (walletPublicKey?: PublicKey) => {
   }, [walletPublicKey?.toString()])
 
   return seedAddress
+}
+
+export const useUnstakeProofAddresses = (
+  userAccountPublicKey?: PublicKey,
+  mintPublicKeys?: PublicKey[]
+) => {
+  const [seedAddresses, setSeedAddresses] = useState<
+    { [key: string]: PublicKey } | undefined
+  >()
+
+  useEffect(() => {
+    if (!userAccountPublicKey || !mintPublicKeys || !_.size(mintPublicKeys)) {
+      setSeedAddresses(undefined)
+      return
+    }
+    ;(async function () {
+      const { PROGRAM_NFT_STAKING } = getClusterConstants("PROGRAM_NFT_STAKING")
+      const unstakeProofAddressResults: [string, PublicKey][] =
+        await Promise.all(
+          _.map(mintPublicKeys, async (mintPublicKey) => {
+            const [address] = await getUnstakeProofAddress(
+              userAccountPublicKey,
+              mintPublicKey,
+              PROGRAM_NFT_STAKING
+            )
+            return [mintPublicKey.toString(), address]
+          })
+        )
+      const unstakeProofAddresses = _.reduce(
+        unstakeProofAddressResults,
+        (
+          accum: Record<string, PublicKey>,
+          [mintAddress, unstakeProofPublicKey]
+        ) => {
+          accum[mintAddress] = unstakeProofPublicKey
+          return accum
+        },
+        {}
+      )
+      setSeedAddresses(unstakeProofAddresses)
+    })()
+  }, [userAccountPublicKey?.toString(), _.size(mintPublicKeys)])
+  return seedAddresses
 }

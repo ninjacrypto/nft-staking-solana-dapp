@@ -1,6 +1,7 @@
 import _ from "lodash"
 import { PublicKey } from "@solana/web3.js"
 import { Program, BN } from "@project-serum/anchor"
+import formatDuration from "date-fns/formatDuration"
 import { BaseAnchorAccount, BaseAnchorAccountManager } from "./baseAnchor"
 
 const U64_MAX = new BN("18446744073709551615")
@@ -17,6 +18,7 @@ export interface PoolAccount {
   rewardRatePerToken: BN
   rewardDuration: BN
   rewardDurationEnd: BN
+  unstakeDuration: BN
   authority: PublicKey
   config: PublicKey
   rewardMint: PublicKey
@@ -31,6 +33,18 @@ export class Pool extends BaseAnchorAccount<PoolAccount> {
       return ""
     }
     return new Date(rewardDurationEndNum * 1000).toLocaleDateString()
+  }
+
+  get unstakingPeriodDisplay() {
+    const unstakeDurationNum = this.data.unstakeDuration.toNumber()
+    const days = Math.floor(unstakeDurationNum / 24 / 60 / 60)
+    const hours = Math.floor(unstakeDurationNum / 60 / 60)
+    const minutes = Math.floor((unstakeDurationNum / 60) % 60)
+    const seconds = (unstakeDurationNum % 60) % 60
+    return formatDuration(
+      { days, hours, minutes, seconds },
+      { format: ["days", "hours", "minutes", "seconds"] }
+    )
   }
 
   getFundAmount = (
@@ -86,6 +100,7 @@ export class PoolManager extends BaseAnchorAccountManager<PoolAccount, Pool> {
       BN.isBN(entity.data.rewardRatePerToken) &&
       BN.isBN(entity.data.rewardDuration) &&
       BN.isBN(entity.data.rewardDurationEnd) &&
+      BN.isBN(entity.data.unstakeDuration) &&
       _.isArray(entity.data.funders)
     )
   }

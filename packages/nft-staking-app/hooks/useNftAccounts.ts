@@ -12,6 +12,7 @@ import {
 import { useAccounts } from "./useAccounts"
 import { useMetaplexMetadataAddresses } from "./useSeedAddress"
 import { useTokenAccounts } from "./useTokenAccounts"
+import { BN } from "@project-serum/anchor"
 
 export const useNftAccounts = (ownerPublicKey: PublicKey | undefined) => {
   const anchorAccountCache = useContext(AnchorAccountCacheContext)
@@ -48,7 +49,36 @@ export const useNftAccounts = (ownerPublicKey: PublicKey | undefined) => {
   }, [tokenAccounts])
 }
 
-export type MonketteAccount = [MetaplexMetadata, any, string]
+export enum MonketteStakeStatus {
+  UNSTAKED,
+  STAKED,
+  PENDING,
+  WITHDRAW,
+}
+
+export class MonketteAccount {
+  constructor(
+    public readonly metaplexMetadata: MetaplexMetadata,
+    public readonly staticData: any,
+    public readonly tokenAccount: HToken
+  ) {}
+
+  getStakeStatus(
+    walletPublicKey: PublicKey,
+    unstakeDuration: BN,
+    unstakeTimestamp?: BN
+  ) {
+    if (this.tokenAccount.data.owner === walletPublicKey.toString()) {
+      return MonketteStakeStatus.UNSTAKED
+    } else if (!unstakeTimestamp) {
+      return MonketteStakeStatus.STAKED
+    }
+    const now = new BN(Date.now() / 1000)
+    return unstakeTimestamp.add(unstakeDuration).gt(now)
+      ? MonketteStakeStatus.PENDING
+      : MonketteStakeStatus.WITHDRAW
+  }
+}
 
 export const useMonketteAccounts = (
   nftAccounts: Record<string, HToken> | undefined
@@ -83,7 +113,9 @@ export const useMonketteAccounts = (
     if (
       !metadataAddresses ||
       !metaplexMetadatas ||
-      _.isEmpty(metaplexMetadatas)
+      _.isEmpty(metaplexMetadatas) ||
+      !nftAccounts ||
+      _.isEmpty(nftAccounts)
     ) {
       return
     }
@@ -94,10 +126,14 @@ export const useMonketteAccounts = (
           async function (
             metadataAddress: PublicKey,
             tokenAccountAddress: string
-          ): Promise<[string, any, string]> {
+          ): Promise<[string, any, HToken]> {
             const metadata = metaplexMetadatas[metadataAddress.toString()]
             const { data } = await axios.get(metadata.data.data.uri)
-            return [metadata.publicKey.toString(), data, tokenAccountAddress]
+            return [
+              metadata.publicKey.toString(),
+              data,
+              nftAccounts[tokenAccountAddress],
+            ]
           }
         )
       )
@@ -105,16 +141,24 @@ export const useMonketteAccounts = (
         fetchResults,
         (
           accum: { [key: string]: MonketteAccount },
-          [key, data, tokenAccountAddress]
+          [key, data, tokenAccount]
         ) => {
-          accum[key] = [metaplexMetadatas[key], data, tokenAccountAddress]
+          accum[key] = new MonketteAccount(
+            metaplexMetadatas[key],
+            data,
+            tokenAccount
+          )
           return accum
         },
         {}
       )
       setMonketteData(fetchedMonketteData)
     })()
-  }, [_.size(metadataAddresses), _.size(metaplexMetadatas)])
+  }, [
+    _.size(metadataAddresses),
+    _.size(metaplexMetadatas),
+    _.size(nftAccounts),
+  ])
 
   return monketteData
 }

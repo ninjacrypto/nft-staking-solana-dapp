@@ -13,14 +13,17 @@ import {
   VStack,
 } from "@chakra-ui/react"
 import { MonketteAccount } from "../hooks/useNftAccounts"
+import { Pool } from "../models/pool"
 
 const StakingModal = ({
   isOpen,
+  pool,
   selectedMonkette,
   onClose,
   onSubmit,
 }: {
   isOpen: boolean
+  pool?: Pool
   selectedMonkette?: MonketteAccount
   onClose: () => void
   onSubmit: () => void
@@ -34,7 +37,7 @@ const StakingModal = ({
         </ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          {selectedMonkette && (
+          {selectedMonkette && pool && (
             <VStack m="4">
               <Image
                 alt="selected nft"
@@ -42,9 +45,12 @@ const StakingModal = ({
                 objectFit="cover"
                 boxShadow="md"
                 borderRadius="lg"
-                src={selectedMonkette[1].image}
+                src={selectedMonkette.staticData.image}
               />
-              <Text fontWeight={"bold"}>{selectedMonkette[1].name}</Text>
+              <Text fontWeight={"bold"}>
+                {selectedMonkette.staticData.name}
+              </Text>
+              <Text>{`Unstaking period: ${pool.unstakingPeriodDisplay}`}</Text>
             </VStack>
           )}
         </ModalBody>

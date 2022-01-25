@@ -42,9 +42,11 @@ const UnstakingModal = ({
                 objectFit="cover"
                 boxShadow="md"
                 borderRadius="lg"
-                src={selectedMonkette[1].image}
+                src={selectedMonkette.staticData.image}
               />
-              <Text fontWeight={"bold"}>{selectedMonkette[1].name}</Text>
+              <Text fontWeight={"bold"}>
+                {selectedMonkette.staticData.name}
+              </Text>
             </VStack>
           )}
         </ModalBody>

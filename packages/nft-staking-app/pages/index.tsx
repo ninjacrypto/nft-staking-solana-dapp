@@ -10,7 +10,7 @@ import {
 } from "../hooks/useNftAccounts"
 import useWalletPublicKey from "../hooks/useWalletPublicKey"
 import StakingModal from "../components/StakingModal"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { MetaplexMetadata } from "../models/metadata"
 import useTxCallback from "../hooks/useTxCallback"
 import { useCallback } from "react"
@@ -18,10 +18,15 @@ import { useAnchorAccountCache } from "../contexts/AnchorAccountsCacheProvider"
 import stakeNft from "../solana/scripts/stakeNft"
 import unstakeNft from "../solana/scripts/unstakeNft"
 import claimReward from "../solana/scripts/claimReward"
-import { useUserAccountAddress } from "../hooks/useSeedAddress"
+import {
+  useUnstakeProofAddresses,
+  useUserAccountAddress,
+} from "../hooks/useSeedAddress"
 import { useAccount, useAccounts } from "../hooks/useAccounts"
 import { getClusterConstants } from "../constants"
 import UnstakingModal from "../components/UnstakingModal"
+import NftCard from "../components/NftCard"
+import { UnstakeProof } from "../models/unstakeProof"
 
 enum PAGE_TABS {
   STAKE,
@@ -32,6 +37,9 @@ enum PAGE_TABS {
 const ManagePoolPage = () => {
   const walletPublicKey = useWalletPublicKey()
   const anchorAccountCache = useAnchorAccountCache()
+
+  const { ADDRESS_STAKING_POOL } = getClusterConstants("ADDRESS_STAKING_POOL")
+  const [pool] = useAccount("pool", ADDRESS_STAKING_POOL)
 
   const [selectedTab, setSelectedTab] = useState<PAGE_TABS>(PAGE_TABS.STAKE)
 
@@ -62,7 +70,7 @@ const ManagePoolPage = () => {
     await stakeNft(
       anchorAccountCache,
       walletPublicKey,
-      new PublicKey(selectedMonkette[2])
+      selectedMonkette.tokenAccount.publicKey
     )
     setSelectedMonkette(undefined)
   }, [
@@ -83,6 +91,25 @@ const ManagePoolPage = () => {
     mintStakedAccount?.data.mintAccounts
   )
   const stakedMonketteAccounts = useMonketteAccounts(stakedNftAccounts)
+
+  const stakedMints = useMemo(() => {
+    return _.map(
+      stakedMonketteAccounts,
+      (monketteAccount) =>
+        new PublicKey(monketteAccount.metaplexMetadata.data.mint)
+    )
+  }, [stakedMonketteAccounts])
+
+  const unstakeProofAddresses = useUnstakeProofAddresses(
+    userAccount?.publicKey,
+    stakedMints
+  )
+
+  const [unstakeProofs] = useAccounts(
+    "unstakeProof",
+    _.values(unstakeProofAddresses)
+  )
+
   const _unstakeNftClickHandler = useCallback(async () => {
     if (
       !anchorAccountCache.isEnabled ||
@@ -95,7 +122,7 @@ const ManagePoolPage = () => {
     await unstakeNft(
       anchorAccountCache,
       walletPublicKey,
-      new PublicKey(selectedMonkette[2])
+      selectedMonkette.tokenAccount.publicKey
     )
     setSelectedMonkette(undefined)
   }, [
@@ -128,6 +155,7 @@ const ManagePoolPage = () => {
     <Box>
       <StakingModal
         isOpen={selectedTab === PAGE_TABS.STAKE && !!selectedMonkette}
+        pool={pool}
         selectedMonkette={selectedMonkette}
         onClose={setSelectedMonkette.bind(null, undefined)}
         onSubmit={stakeNftClickHandler}
@@ -184,59 +212,62 @@ const ManagePoolPage = () => {
           </Button>
         </HStack>
 
-        {selectedTab === PAGE_TABS.STAKE && monketteAccounts && (
-          <VStack>
-            <Text>(Click to stake)</Text>
-            <Center w="120" flexWrap={"wrap"}>
-              {_.map(monketteAccounts, (monketteAccount, key) => {
-                return (
-                  <Box
-                    key={key}
-                    m="4"
-                    cursor="pointer"
-                    onClick={setSelectedMonkette.bind(null, monketteAccount)}
-                  >
-                    <Image
-                      alt="selected nft"
-                      w="36"
-                      objectFit="cover"
-                      boxShadow="md"
-                      borderRadius="lg"
-                      src={monketteAccount[1].image}
+        {selectedTab === PAGE_TABS.STAKE &&
+          (walletPublicKey && pool && monketteAccounts ? (
+            <VStack>
+              <Text>(Click to stake)</Text>
+              <Center w="120" flexWrap={"wrap"}>
+                {_.map(monketteAccounts, (monketteAccount, key) => {
+                  return (
+                    <NftCard
+                      key={key}
+                      walletPublicKey={walletPublicKey}
+                      pool={pool}
+                      monketteAccount={monketteAccount}
+                      onClick={setSelectedMonkette}
                     />
-                  </Box>
-                )
-              })}
-            </Center>
-          </VStack>
-        )}
+                  )
+                })}
+              </Center>
+            </VStack>
+          ) : (
+            <VStack>
+              <Text fontFamily="T1">No monkettes found</Text>
+            </VStack>
+          ))}
 
-        {selectedTab === PAGE_TABS.UNSTAKE && userAccount && (
-          <VStack>
-            <Text>(Click to unstake)</Text>
-            <Center w="120" flexWrap={"wrap"}>
-              {_.map(stakedMonketteAccounts, (monketteAccount, key) => {
-                return (
-                  <Box
-                    key={key}
-                    m="4"
-                    cursor="pointer"
-                    onClick={setSelectedMonkette.bind(null, monketteAccount)}
-                  >
-                    <Image
-                      alt="selected nft"
-                      w="36"
-                      objectFit="cover"
-                      boxShadow="md"
-                      borderRadius="lg"
-                      src={monketteAccount[1].image}
+        {selectedTab === PAGE_TABS.UNSTAKE &&
+          (walletPublicKey && pool && userAccount && stakedMonketteAccounts ? (
+            <VStack>
+              <Text>(Click to unstake)</Text>
+              <Center w="120" flexWrap={"wrap"}>
+                {_.map(stakedMonketteAccounts, (monketteAccount, key) => {
+                  let unstakeProof: UnstakeProof | undefined
+                  if (unstakeProofAddresses && unstakeProofs) {
+                    const unstakeProofAddress =
+                      unstakeProofAddresses[
+                        monketteAccount.metaplexMetadata.data.mint
+                      ]
+                    unstakeProof = unstakeProofs[unstakeProofAddress.toString()]
+                  }
+                  return (
+                    <NftCard
+                      key={key}
+                      walletPublicKey={walletPublicKey}
+                      pool={pool}
+                      unstakeProof={unstakeProof}
+                      monketteAccount={monketteAccount}
+                      onClick={setSelectedMonkette}
                     />
-                  </Box>
-                )
-              })}
-            </Center>
-          </VStack>
-        )}
+                  )
+                })}
+              </Center>
+            </VStack>
+          ) : (
+            <VStack>
+              <Text fontFamily="T1">No staked monkettes found</Text>
+            </VStack>
+          ))}
 
         {selectedTab === PAGE_TABS.CLAIM && userAccount && (
           <VStack w="96" spacing={8}>

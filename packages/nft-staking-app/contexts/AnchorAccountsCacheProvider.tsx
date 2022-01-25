@@ -20,6 +20,8 @@ export interface AnchorAccountCacheProviderState {
   [Models.User.AccountType]: AccountMap<Models.User.User>
   [Models.MintStaked.AccountType]: AccountMap<Models.MintStaked.MintStaked>
   [Models.Config.AccountType]: AccountMap<Models.Config.Config>
+  [Models.UnstakeProof
+    .AccountType]: AccountMap<Models.UnstakeProof.UnstakeProof>
 }
 
 type Awaited<T> = T extends PromiseLike<infer U> ? U : T
@@ -93,6 +95,7 @@ class AnchorAccountCacheProvider extends React.Component<
     [Models.User.AccountType]: Models.User.UserManager
     [Models.MintStaked.AccountType]: Models.MintStaked.MintStakedManager
     [Models.Config.AccountType]: Models.Config.ConfigManager
+    [Models.UnstakeProof.AccountType]: Models.UnstakeProof.UnstakeProofManager
   }
 
   constructor(props: Readonly<AnchorAccountCacheProviderProps>) {
@@ -121,6 +124,10 @@ class AnchorAccountCacheProvider extends React.Component<
       [Models.Config.AccountType]: new Models.Config.ConfigManager(
         this.props.nftStakingProgram
       ),
+      [Models.UnstakeProof.AccountType]:
+        new Models.UnstakeProof.UnstakeProofManager(
+          this.props.nftStakingProgram
+        ),
     }
 
     this.state = {
@@ -131,6 +138,7 @@ class AnchorAccountCacheProvider extends React.Component<
       [Models.User.AccountType]: {},
       [Models.MintStaked.AccountType]: {},
       [Models.Config.AccountType]: {},
+      [Models.UnstakeProof.AccountType]: {},
     }
   }
 
