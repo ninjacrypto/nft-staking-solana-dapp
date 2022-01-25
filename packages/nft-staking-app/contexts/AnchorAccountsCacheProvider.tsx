@@ -19,6 +19,7 @@ export interface AnchorAccountCacheProviderState {
     .AccountType]: AccountMap<Models.MetaplexMetadata.MetaplexMetadata>
   [Models.User.AccountType]: AccountMap<Models.User.User>
   [Models.MintStaked.AccountType]: AccountMap<Models.MintStaked.MintStaked>
+  [Models.Config.AccountType]: AccountMap<Models.Config.Config>
 }
 
 type Awaited<T> = T extends PromiseLike<infer U> ? U : T
@@ -91,6 +92,7 @@ class AnchorAccountCacheProvider extends React.Component<
       .AccountType]: Models.MetaplexMetadata.MetaplexMetadataManager
     [Models.User.AccountType]: Models.User.UserManager
     [Models.MintStaked.AccountType]: Models.MintStaked.MintStakedManager
+    [Models.Config.AccountType]: Models.Config.ConfigManager
   }
 
   constructor(props: Readonly<AnchorAccountCacheProviderProps>) {
@@ -116,6 +118,9 @@ class AnchorAccountCacheProvider extends React.Component<
       [Models.MintStaked.AccountType]: new Models.MintStaked.MintStakedManager(
         this.props.nftStakingProgram
       ),
+      [Models.Config.AccountType]: new Models.Config.ConfigManager(
+        this.props.nftStakingProgram
+      ),
     }
 
     this.state = {
@@ -125,6 +130,7 @@ class AnchorAccountCacheProvider extends React.Component<
       [Models.MetaplexMetadata.AccountType]: {},
       [Models.User.AccountType]: {},
       [Models.MintStaked.AccountType]: {},
+      [Models.Config.AccountType]: {},
     }
   }
 

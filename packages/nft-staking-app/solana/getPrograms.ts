@@ -1,5 +1,5 @@
 import { Provider, Program, Idl } from "@project-serum/anchor"
-import NftStakingIdl from "./nftStakingIdl.json"
+import NftStakingIdl from "./../scripts/nft_staking.json"
 import { getClusterConstants } from "../constants"
 
 export const getNftStakingProgram = (provider: Provider) => {

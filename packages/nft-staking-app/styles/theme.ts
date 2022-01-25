@@ -15,7 +15,4 @@ export const theme = extendTheme({
       100: "#a5d9ee",
     },
   },
-  fonts: {
-    heading: "T1",
-  },
 })

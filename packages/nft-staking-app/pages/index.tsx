@@ -39,8 +39,7 @@ const ManagePoolPage = () => {
   const [userAccount] = useAccount("user", userAccountAddress)
   const [mintStakedAccount] = useAccount(
     "mintStaked",
-    userAccount?.data.mintStaked,
-    { subscribe: true }
+    userAccount?.data.mintStaked
   )
 
   // STAKE
@@ -140,7 +139,9 @@ const ManagePoolPage = () => {
         onSubmit={unstakeNftClickHandler}
       />
       <VStack w="full" spacing={16} textAlign="center">
-        <Heading color="brandPink.200">Monkette Staking!</Heading>
+        <Heading color="brandPink.200" fontFamily="T1">
+          Monkette Staking!
+        </Heading>
         <HStack spacing="8">
           <Button
             w="48"

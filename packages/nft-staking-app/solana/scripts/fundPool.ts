@@ -1,8 +1,7 @@
 import { PublicKey } from "@solana/web3.js"
-import { Program, BN } from "@project-serum/anchor"
+import { BN } from "@project-serum/anchor"
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token"
 import { IAnchorAccountCacheContext } from "../../contexts/AnchorAccountsCacheProvider"
-import { toRawAmount } from "../tokenConversion"
 
 const fundPool = async (
   anchorAccountCache: IAnchorAccountCacheContext,
@@ -11,7 +10,7 @@ const fundPool = async (
   configAccount: PublicKey,
   rewardVault: PublicKey,
   funderVault: PublicKey,
-  amount: number
+  amountPerWeek: number
 ) => {
   if (!anchorAccountCache.isEnabled) {
     throw new Error("App not connected")
@@ -33,7 +32,17 @@ const fundPool = async (
     )
   }
 
-  const rawAmount = toRawAmount(mint?.data.decimals, amount)
+  const config =
+    await anchorAccountCache.nftStakingProgram.account.config.fetch(
+      poolAccountInfo.data.config
+    )
+
+  const rawAmount = poolAccountInfo.getFundAmount(
+    amountPerWeek,
+    mint.data.decimals,
+    config.numMint
+  )
+
   return await anchorAccountCache.nftStakingProgram.rpc.fund(rawAmount, {
     accounts: {
       funder: walletPublicKey,

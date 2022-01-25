@@ -10,7 +10,6 @@ import {
   Input,
   Image,
   HStack,
-  Divider,
   Text,
 } from "@chakra-ui/react"
 import { PublicKey } from "@solana/web3.js"
@@ -39,6 +38,7 @@ const ManagePoolPage = () => {
   })
 
   const tokenAccounts = useTokenAccounts(walletPublicKey)
+  const [config] = useAccount("config", pool?.data.config)
 
   const rewardTokenAccount = useMemo(() => {
     if (!pool || !tokenAccounts) {
@@ -51,9 +51,9 @@ const ManagePoolPage = () => {
     )
   }, [pool, tokenAccounts])
 
-  const [fundAmount, setFundAMount] = useState(0)
+  const [amountPerWeek, setAmountPerWeek] = useState(0)
   const handleFundAmountChange = (valueAsString: string) => {
-    setFundAMount(Number(valueAsString))
+    setAmountPerWeek(Number(valueAsString))
   }
 
   const _fundPoolClickHandler = useCallback(async () => {
@@ -62,7 +62,7 @@ const ManagePoolPage = () => {
       !walletPublicKey ||
       !pool ||
       !rewardTokenAccount ||
-      !fundAmount
+      !amountPerWeek
     ) {
       throw new Error("Invalid data")
     }
@@ -74,15 +74,15 @@ const ManagePoolPage = () => {
       pool.data.config,
       pool.data.rewardVault,
       rewardTokenAccount.publicKey,
-      fundAmount
+      amountPerWeek
     )
-    setFundAMount(0)
+    setAmountPerWeek(0)
   }, [
     anchorAccountCache.isEnabled,
     walletPublicKey?.toString(),
     pool,
     rewardTokenAccount,
-    fundAmount,
+    amountPerWeek,
   ])
 
   const fundPoolClickHandler = useTxCallback(_fundPoolClickHandler, {
@@ -168,6 +168,21 @@ const ManagePoolPage = () => {
   )
 
   const rewardMint = pool?.data.rewardMint.toString()
+  const rewardMintInfo =
+    tokenRegistry && rewardMint && tokenRegistry[rewardMint]
+
+  const approxFundAmount = useMemo(() => {
+    if (!pool || !config || !rewardMintInfo) {
+      return "..."
+    }
+    return pool
+      .getFundAmountDisplay(
+        amountPerWeek,
+        rewardMintInfo.decimals,
+        config.data.numMint
+      )
+      .toString()
+  }, [pool, config, amountPerWeek, rewardMintInfo])
 
   return (
     <VStack
@@ -176,25 +191,30 @@ const ManagePoolPage = () => {
       spacing={16}
       textAlign="center"
     >
-      <VStack w="72">
+      <VStack w="96">
         <Heading w="full" mb="8">
           Fund Pool
         </Heading>
-        {tokenRegistry && rewardMint && tokenRegistry[rewardMint] && (
-          <HStack>
+        {rewardMintInfo && (
+          <HStack w="full">
             <Image
               alt="token image"
-              w="16"
-              h="16"
+              w="8"
+              h="8"
               borderRadius="20"
               src={tokenRegistry[rewardMint].logoURI}
             />
-            <Text>{tokenRegistry[rewardMint].name}</Text>
+            <Text fontSize="16">{tokenRegistry[rewardMint].name}</Text>
           </HStack>
         )}
+        <Text
+          w="full"
+          fontSize="16"
+          textAlign={"left"}
+        >{`Number of tokens rewarded per NFT per week`}</Text>
         <NumberInput
           w="full"
-          value={fundAmount}
+          value={amountPerWeek}
           defaultValue={0}
           min={0}
           onChange={handleFundAmountChange}
@@ -205,13 +225,19 @@ const ManagePoolPage = () => {
             <NumberDecrementStepper />
           </NumberInputStepper>
         </NumberInput>
+        <Box w="full" textAlign={"left"}>
+          <Text>{`Approximate fund amount: ${approxFundAmount}`}</Text>
+          <Text>{`Funds refresh date: ${
+            pool?.rewardEndDisplay || "NOW"
+          }`}</Text>
+        </Box>
         <Button
           colorScheme="purple"
           mt="4"
           px="8"
           w="40"
           onClick={fundPoolClickHandler}
-          disabled={!rewardTokenAccount || !fundAmount}
+          disabled={!rewardTokenAccount || !amountPerWeek}
         >
           Submit
         </Button>
