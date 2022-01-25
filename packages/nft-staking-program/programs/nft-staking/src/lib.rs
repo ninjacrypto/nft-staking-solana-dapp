@@ -16,7 +16,7 @@ const PREFIX_MINT: &str = "nft_staking_mint";
 const PREFIX_UNSTAKE_PROOF: &str = "nft_unstake_proof";
 const PRECISION: u128 = u64::MAX as u128;
 
-declare_id!("paramKFFuRPLVXZWjDRbnk5xKemduYZUW2BqUp7xZD3");
+declare_id!("BHvGoqbTvVVBUdDY42Et73FckAhBXj9QKFqKmf68PZ9S");
 
 pub mod constants {
     pub const MIN_DURATION: u64 = 1;
@@ -1035,6 +1035,7 @@ pub const POOL_SIZE: usize = 8 + // discriminator
     16 + // reward_per_token
     8 + // reward_duration
     8 + // reward_duration_end
+    8 + // unstake_duration
     4 + // token_stake_count
     4 + // user_count
     4 + 32 * 5; // funders

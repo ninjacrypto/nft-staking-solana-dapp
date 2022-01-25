@@ -15,19 +15,23 @@ const main = async ({
   scriptConfig,
 }: ScriptRunnerArgs) => {
   let [configAccount, configUuid] = await utils.getConfigAccount(
-    wallet.publicKey
+    wallet.publicKey,
+    program.programId
   )
   let [poolAccount, poolBump] = await utils.getPoolAccount(
     wallet.publicKey,
-    configAccount
+    configAccount,
+    program.programId
   )
   let [rewardAccount, rewardBump] = await utils.getRewardAccount(
     wallet.publicKey,
     poolAccount,
-    new PublicKey(config.rewardMint)
+    new PublicKey(config.rewardMint),
+    program.programId
   )
 
-  const { maxNumNftMints, rewardDuration, rewardMint } = scriptConfig
+  const { maxNumNftMints, rewardDuration, unstakeDuration, rewardMint } =
+    scriptConfig
 
   const configSpace =
     8 + // discriminator
@@ -45,11 +49,12 @@ const main = async ({
   console.log("Initializing pool...")
 
   const txSig = await program.rpc.initializePool(
-    poolBump,
     configUuid,
     new BN(maxNumNftMints),
-    rewardBump,
     new BN(rewardDuration),
+    new BN(unstakeDuration),
+    poolBump,
+    rewardBump,
     {
       accounts: {
         authority: authorityPublicKey,

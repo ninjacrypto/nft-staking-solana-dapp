@@ -1,17 +1,17 @@
 import _ from "lodash"
 import fs from "fs"
-import { Provider, Wallet, Program } from "@project-serum/anchor"
+import { Provider, Wallet, Program, Idl } from "@project-serum/anchor"
 import { Connection, clusterApiUrl, Keypair, PublicKey } from "@solana/web3.js"
-import NftStakingIdl from "./nft_staking.json"
+import nftStakingIdl from "./nft_staking.json"
 import scriptConfig from "./scriptConfig.json"
-
-const PROGRAM_NFT_STAKING = new PublicKey(NftStakingIdl.metadata.address)
 
 interface Config {
   cluster: "devnet" | "mainnet-beta"
   keypair: string
+  stakingProgramId: string
   maxNumNftMints: number
   rewardDuration: number
+  unstakeDuration: number
   rewardMint: string
   preview: boolean
   validNftMints: string[]
@@ -35,13 +35,15 @@ const validateConfig = (value: any): value is Readonly<Config> => {
   if (typeof value["preview"] !== "boolean") {
     invalidKeyMap.push("preview")
   }
-  if (typeof value["maxNumNftMints"] !== "number") {
-    invalidKeyMap.push("maxNumNftMints")
-  }
+  _.forEach(["maxNumNftMints", "rewardDuration", "unstakeDuration"], (key) => {
+    if (typeof value[key] !== "number") {
+      invalidKeyMap.push(key)
+    }
+  })
   if (!_.isArray(value["validNftMints"])) {
     invalidKeyMap.push("validNftMints")
   }
-  _.forEach(["keypair"], (key) => {
+  _.forEach(["keypair", "stakingProgramId"], (key) => {
     if (typeof value[key] !== "string") {
       invalidKeyMap.push(key)
     }
@@ -103,7 +105,12 @@ const scriptRunner = async (
     preflightCommitment: "recent",
     commitment: "recent",
   })
-  const nftStakingProgram = await Program.at(PROGRAM_NFT_STAKING, provider)
+  const PROGRAM_NFT_STAKING = new PublicKey(scriptConfig.stakingProgramId)
+  const nftStakingProgram = new Program(
+    nftStakingIdl as Idl,
+    PROGRAM_NFT_STAKING,
+    provider
+  )
   console.log(`NFT Staking Program: ${PROGRAM_NFT_STAKING.toString()}`)
 
   await script({

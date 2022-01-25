@@ -48,10 +48,6 @@
       ],
       "args": [
         {
-          "name": "poolBump",
-          "type": "u8"
-        },
-        {
           "name": "uuid",
           "type": "string"
         },
@@ -60,12 +56,20 @@
           "type": "u32"
         },
         {
-          "name": "rewardBump",
+          "name": "rewardDuration",
+          "type": "u64"
+        },
+        {
+          "name": "unstakeDuration",
+          "type": "u64"
+        },
+        {
+          "name": "poolBump",
           "type": "u8"
         },
         {
-          "name": "rewardDuration",
-          "type": "u64"
+          "name": "rewardBump",
+          "type": "u8"
         }
       ]
     },
@@ -345,6 +349,57 @@
       ]
     },
     {
+      "name": "beginUnstake",
+      "accounts": [
+        {
+          "name": "staker",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "poolAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "mintStaked",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "unstakeFromAccount",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "unstakeProof",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "unstakeProofBump",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "unstake",
       "accounts": [
         {
@@ -359,11 +414,6 @@
         },
         {
           "name": "config",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "authority",
           "isMut": false,
           "isSigner": false
         },
@@ -373,17 +423,12 @@
           "isSigner": false
         },
         {
+          "name": "unstakeProof",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
           "name": "unstakeFromAccount",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "mintStaked",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "currentMintStaked",
           "isMut": true,
           "isSigner": false
         },
@@ -403,16 +448,7 @@
           "isSigner": false
         }
       ],
-      "args": [
-        {
-          "name": "mintStakedBump",
-          "type": "u8"
-        },
-        {
-          "name": "uuid",
-          "type": "string"
-        }
-      ]
+      "args": []
     },
     {
       "name": "claim",
@@ -565,6 +601,10 @@
             "type": "u64"
           },
           {
+            "name": "unstakeDuration",
+            "type": "u64"
+          },
+          {
             "name": "tokenStakeCount",
             "type": "u32"
           },
@@ -668,6 +708,26 @@
           }
         ]
       }
+    },
+    {
+      "name": "UnstakeProof",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "userAccount",
+            "type": "publicKey"
+          },
+          {
+            "name": "tokenAccount",
+            "type": "publicKey"
+          },
+          {
+            "name": "unstakeTimestamp",
+            "type": "u64"
+          }
+        ]
+      }
     }
   ],
   "errors": [
@@ -750,6 +810,11 @@
       "code": 315,
       "name": "InvalidMint",
       "msg": "Mint address is not stakable!"
+    },
+    {
+      "code": 316,
+      "name": "UnstakeNotReady",
+      "msg": "Unable to unstake token. It is still within the unstaking period."
     }
   ]
 }

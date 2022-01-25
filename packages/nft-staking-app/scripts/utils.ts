@@ -1,8 +1,5 @@
 import { PublicKey } from "@solana/web3.js"
 import * as anchor from "@project-serum/anchor"
-import NftStakingIdl from "./nft_staking.json"
-
-const PROGRAM_NFT_STAKING = new PublicKey(NftStakingIdl.metadata.address)
 
 export const REWARD_TOKEN_ACCOUNT = new PublicKey(
   "GTcQd2tXUg8ShRcpowVoffcCjn44dJpvUUcKMhczhTZZ"
@@ -17,14 +14,15 @@ export const generateUuid = (): string => {
 }
 
 export const getConfigAccount = async (
-  authority: anchor.web3.PublicKey
+  authority: anchor.web3.PublicKey,
+  programId: PublicKey
 ): Promise<[anchor.web3.PublicKey, string]> => {
   let configUuid = generateUuid()
 
   let configAccount = await PublicKey.createWithSeed(
     authority,
     configUuid,
-    PROGRAM_NFT_STAKING
+    programId
   )
 
   while (PublicKey.isOnCurve(configAccount.toBuffer())) {
@@ -32,7 +30,7 @@ export const getConfigAccount = async (
     configAccount = await PublicKey.createWithSeed(
       authority,
       configUuid,
-      PROGRAM_NFT_STAKING
+      programId
     )
   }
 
@@ -41,7 +39,8 @@ export const getConfigAccount = async (
 
 export const getPoolAccount = async (
   authority: anchor.web3.PublicKey,
-  configPubKey: anchor.web3.PublicKey
+  configPubKey: anchor.web3.PublicKey,
+  programId: PublicKey
 ): Promise<[anchor.web3.PublicKey, number]> => {
   return await anchor.web3.PublicKey.findProgramAddress(
     [
@@ -49,14 +48,15 @@ export const getPoolAccount = async (
       authority.toBuffer(),
       configPubKey.toBuffer(),
     ],
-    PROGRAM_NFT_STAKING
+    programId
   )
 }
 
 export const getRewardAccount = async (
   authority: anchor.web3.PublicKey,
   poolAccount: anchor.web3.PublicKey,
-  rewardMintId: anchor.web3.PublicKey
+  rewardMintId: anchor.web3.PublicKey,
+  programId: PublicKey
 ): Promise<[anchor.web3.PublicKey, number]> => {
   return await anchor.web3.PublicKey.findProgramAddress(
     [
@@ -65,6 +65,6 @@ export const getRewardAccount = async (
       authority.toBuffer(),
       rewardMintId.toBuffer(),
     ],
-    PROGRAM_NFT_STAKING
+    programId
   )
 }
