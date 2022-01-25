@@ -13,6 +13,7 @@ import { useAccounts } from "./useAccounts"
 import { useMetaplexMetadataAddresses } from "./useSeedAddress"
 import { useTokenAccounts } from "./useTokenAccounts"
 import { BN } from "@project-serum/anchor"
+import { getNowBn } from "../utils/bn"
 
 export const useNftAccounts = (ownerPublicKey: PublicKey | undefined) => {
   const anchorAccountCache = useContext(AnchorAccountCacheContext)
@@ -73,7 +74,7 @@ export class MonketteAccount {
     } else if (!unstakeTimestamp) {
       return MonketteStakeStatus.STAKED
     }
-    const now = new BN(Date.now() / 1000)
+    const now = getNowBn()
     return unstakeTimestamp.add(unstakeDuration).gt(now)
       ? MonketteStakeStatus.PENDING
       : MonketteStakeStatus.WITHDRAW

@@ -1,17 +1,15 @@
 import _ from "lodash"
 import { Button, Heading, Image, Text, Flex } from "@chakra-ui/react"
 import { PublicKey } from "@solana/web3.js"
-import { Center, VStack, HStack, StackDivider, Box } from "@chakra-ui/layout"
+import { Center, VStack, HStack, Box } from "@chakra-ui/layout"
 import {
   useMonketteAccounts,
   MonketteAccount,
   useNftAccounts,
-  useNftMintAccounts,
 } from "../hooks/useNftAccounts"
 import useWalletPublicKey from "../hooks/useWalletPublicKey"
 import StakingModal from "../components/StakingModal"
-import { useEffect, useState, useMemo } from "react"
-import { MetaplexMetadata } from "../models/metadata"
+import { useState, useMemo } from "react"
 import useTxCallback from "../hooks/useTxCallback"
 import { useCallback } from "react"
 import { useAnchorAccountCache } from "../contexts/AnchorAccountsCacheProvider"
@@ -27,6 +25,8 @@ import { getClusterConstants } from "../constants"
 import UnstakingModal from "../components/UnstakingModal"
 import NftCard from "../components/NftCard"
 import { UnstakeProof } from "../models/unstakeProof"
+import { useTokenRegistry } from "../hooks/useTokenRegistry"
+import { fromRawAmount } from "../solana/tokenConversion"
 
 enum PAGE_TABS {
   STAKE,
@@ -49,6 +49,8 @@ const ManagePoolPage = () => {
     "mintStaked",
     userAccount?.data.mintStaked
   )
+
+  const tokenRegistry = useTokenRegistry()
 
   // STAKE
   const nftAccounts = useNftAccounts(walletPublicKey)
@@ -138,6 +140,13 @@ const ManagePoolPage = () => {
   })
 
   // CLAIM
+  const rewardToken = useMemo(() => {
+    if (!tokenRegistry || !pool) {
+      return
+    }
+    return tokenRegistry[pool.data.rewardMint.toString()]
+  }, [pool, tokenRegistry])
+
   const _claimRewardClickHandler = useCallback(async () => {
     if (!anchorAccountCache.isEnabled || !walletPublicKey) {
       throw new Error("Invalid data")
@@ -269,7 +278,7 @@ const ManagePoolPage = () => {
             </VStack>
           ))}
 
-        {selectedTab === PAGE_TABS.CLAIM && userAccount && (
+        {selectedTab === PAGE_TABS.CLAIM && userAccount && pool && rewardToken && (
           <VStack w="96" spacing={8}>
             <Flex
               w="full"
@@ -277,10 +286,10 @@ const ManagePoolPage = () => {
               borderBottom={"2px solid grey"}
             >
               <Text textAlign={"left"} fontSize="18" fontWeight={600}>
-                Vibe tokens claimed
+                Monkettes Staked
               </Text>
               <Text textAlign={"right"} fontSize="18" fontWeight={600}>
-                {`${userAccount?.data.rewardEarnedClaimed.toString()}`}
+                {`${userAccount?.data.mintStakedCount.toString()}`}
               </Text>
             </Flex>
             <Flex
@@ -288,11 +297,47 @@ const ManagePoolPage = () => {
               justifyContent="space-between"
               borderBottom={"2px solid grey"}
             >
-              <Text textAlign={"left"} fontSize="18" fontWeight={600}>
-                Vibe tokens available
-              </Text>
+              <HStack>
+                <Image
+                  alt="token image"
+                  w="8"
+                  h="8"
+                  borderRadius="20"
+                  src={rewardToken.logoURI}
+                />
+                <Text textAlign={"left"} fontSize="18" fontWeight={600}>
+                  {`${rewardToken.name} claimed`}
+                </Text>
+              </HStack>
               <Text textAlign={"right"} fontSize="18" fontWeight={600}>
-                {`${userAccount?.data.rewardEarnedPending.toString()}`}
+                {`${fromRawAmount(
+                  rewardToken.decimals,
+                  userAccount.data.rewardEarnedClaimed.toNumber()
+                )}`}
+              </Text>
+            </Flex>
+            <Flex
+              w="full"
+              justifyContent="space-between"
+              borderBottom={"2px solid grey"}
+            >
+              <HStack>
+                <Image
+                  alt="token image"
+                  w="8"
+                  h="8"
+                  borderRadius="20"
+                  src={rewardToken.logoURI}
+                />
+                <Text textAlign={"left"} fontSize="18" fontWeight={600}>
+                  {`${rewardToken.name} available`}
+                </Text>
+              </HStack>
+              <Text textAlign={"right"} fontSize="18" fontWeight={600}>
+                {`${userAccount.getRewardsToClaim(
+                  pool.data.rewardRatePerToken,
+                  rewardToken.decimals
+                )}`}
               </Text>
             </Flex>
             <Button

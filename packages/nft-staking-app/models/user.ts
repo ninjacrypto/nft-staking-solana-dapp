@@ -2,6 +2,7 @@ import _ from "lodash"
 import { PublicKey } from "@solana/web3.js"
 import { Program, BN } from "@project-serum/anchor"
 import { BaseAnchorAccount, BaseAnchorAccountManager } from "./baseAnchor"
+import { U64_MAX, getNowBn } from "../utils/bn"
 
 export const AccountType = "user"
 
@@ -16,7 +17,18 @@ export interface UserAccount {
   mintStaked: PublicKey
 }
 
-export class User extends BaseAnchorAccount<UserAccount> {}
+export class User extends BaseAnchorAccount<UserAccount> {
+  getRewardsToClaim = (rewardRatePerToken: BN, decimals: number) => {
+    const elapsedTime = getNowBn().sub(this.data.lastUpdateTime)
+    const rewardRaw = rewardRatePerToken
+      .clone()
+      .mul(new BN(this.data.mintStakedCount))
+      .mul(elapsedTime)
+      .div(U64_MAX)
+      .add(this.data.rewardEarnedPending)
+    return rewardRaw.toNumber() / 10 ** decimals
+  }
+}
 
 export class UserManager extends BaseAnchorAccountManager<UserAccount, User> {
   constructor(program: Program) {

@@ -3,9 +3,7 @@ import { PublicKey } from "@solana/web3.js"
 import { Program, BN } from "@project-serum/anchor"
 import formatDuration from "date-fns/formatDuration"
 import { BaseAnchorAccount, BaseAnchorAccountManager } from "./baseAnchor"
-
-const U64_MAX = new BN("18446744073709551615")
-const SEC_PER_WEEK = new BN("604800")
+import { U64_MAX, SEC_PER_WEEK, getNowBn } from "../utils/bn"
 
 export const AccountType = "pool"
 
@@ -55,7 +53,7 @@ export class Pool extends BaseAnchorAccount<PoolAccount> {
     if (amountPerWeek === 0) {
       return new BN(0)
     }
-    const now = new BN(Date.now() / 1000)
+    const now = getNowBn()
     let leftover = new BN(0)
     if (now.lt(this.data.rewardDurationEnd)) {
       const remainingDuration = this.data.rewardDurationEnd.sub(now)
