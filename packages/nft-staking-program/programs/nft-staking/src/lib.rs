@@ -373,15 +373,6 @@ pub mod nft_staking {
         ).unwrap();
         user_account.mint_staked_count = user_account.mint_staked_count.checked_sub(1).unwrap();
 
-        let mint_staked = &mut ctx.accounts.mint_staked;
-        let mut new_mint_accounts = vec!();
-        for mint_address in &mint_staked.mint_accounts {
-            if mint_address != ctx.accounts.unstake_from_account.to_account_info().key {
-                new_mint_accounts.push(*mint_address);
-            }
-        }
-        mint_staked.mint_accounts = new_mint_accounts;
-
         let unstake_proof = &mut ctx.accounts.unstake_proof;
         unstake_proof.user_account = *user_account.to_account_info().key;
         unstake_proof.token_account = *ctx.accounts.unstake_from_account.to_account_info().key;
@@ -408,6 +399,15 @@ pub mod nft_staking {
             pool_account,
             user_account,
         ).unwrap();
+
+        let mint_staked = &mut ctx.accounts.mint_staked;
+        let mut new_mint_accounts = vec!();
+        for mint_address in &mint_staked.mint_accounts {
+            if mint_address != ctx.accounts.unstake_from_account.to_account_info().key {
+                new_mint_accounts.push(*mint_address);
+            }
+        }
+        mint_staked.mint_accounts = new_mint_accounts;
 
         // Transfer token authority
         {
@@ -843,7 +843,6 @@ pub struct BeginUnstake<'info> {
     user_account: ProgramAccount<'info, User>,
 
     #[account(
-        mut,
         constraint = mint_staked.pool == *pool_account.to_account_info().key,
         constraint = mint_staked.user_account == *user_account.to_account_info().key,
     )]
@@ -891,8 +890,16 @@ pub struct Unstake<'info> {
         mut,
         constraint = user_account.user == *staker.key,
         constraint = user_account.pool == *pool_account.to_account_info().key,
+        constraint = user_account.mint_staked == *mint_staked.to_account_info().key,
     )]
     user_account: ProgramAccount<'info, User>,
+
+    #[account(
+        mut,
+        constraint = mint_staked.pool == *pool_account.to_account_info().key,
+        constraint = mint_staked.user_account == *user_account.to_account_info().key,
+    )]
+    mint_staked: ProgramAccount<'info, MintStaked>,
 
     #[account(
         mut,
@@ -905,7 +912,7 @@ pub struct Unstake<'info> {
     #[account(
         mut,
         constraint = unstake_proof.token_account == *unstake_from_account.to_account_info().key,
-        close = staker
+        constraint = mint_staked.mint_accounts.iter().any(|key| *key == *unstake_from_account.to_account_info().key),
     )]
     unstake_from_account: Account<'info, TokenAccount>,
 

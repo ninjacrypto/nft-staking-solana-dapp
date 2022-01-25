@@ -277,13 +277,14 @@ const ManagePoolPage = () => {
               <Center w="120" flexWrap={"wrap"}>
                 {_.map(monketteAccounts, (monketteAccount, key) => {
                   return (
-                    <NftCard
-                      key={key}
-                      walletPublicKey={walletPublicKey}
-                      pool={pool}
-                      monketteAccount={monketteAccount}
-                      onClick={setSelectedMonkette}
-                    />
+                    <Box key={key} m="4">
+                      <NftCard
+                        walletPublicKey={walletPublicKey}
+                        pool={pool}
+                        monketteAccount={monketteAccount}
+                        onClick={setSelectedMonkette}
+                      />
+                    </Box>
                   )
                 })}
               </Center>
@@ -309,14 +310,15 @@ const ManagePoolPage = () => {
                     unstakeProof = unstakeProofs[unstakeProofAddress.toString()]
                   }
                   return (
-                    <NftCard
-                      key={key}
-                      walletPublicKey={walletPublicKey}
-                      pool={pool}
-                      unstakeProof={unstakeProof}
-                      monketteAccount={monketteAccount}
-                      onClick={setSelectedMonkette}
-                    />
+                    <Box key={key} m="4">
+                      <NftCard
+                        walletPublicKey={walletPublicKey}
+                        pool={pool}
+                        unstakeProof={unstakeProof}
+                        monketteAccount={monketteAccount}
+                        onClick={setSelectedMonkette}
+                      />
+                    </Box>
                   )
                 })}
               </Center>
