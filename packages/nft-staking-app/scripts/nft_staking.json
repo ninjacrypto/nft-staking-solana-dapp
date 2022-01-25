@@ -368,7 +368,7 @@
         },
         {
           "name": "mintStaked",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false
         },
         {
@@ -419,6 +419,11 @@
         },
         {
           "name": "userAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "mintStaked",
           "isMut": true,
           "isSigner": false
         },

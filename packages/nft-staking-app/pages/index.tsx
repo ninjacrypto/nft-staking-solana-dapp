@@ -15,6 +15,7 @@ import { useCallback } from "react"
 import { useAnchorAccountCache } from "../contexts/AnchorAccountsCacheProvider"
 import stakeNft from "../solana/scripts/stakeNft"
 import unstakeNft from "../solana/scripts/unstakeNft"
+import beginUnstakeNft from "../solana/scripts/beginUnstakeNft"
 import claimReward from "../solana/scripts/claimReward"
 import {
   useUnstakeProofAddresses,
@@ -107,9 +108,14 @@ const ManagePoolPage = () => {
     stakedMints
   )
 
+  const unstakeProffAddressesVal = useMemo(() => {
+    return _.values(unstakeProofAddresses)
+  }, [unstakeProofAddresses])
+
   const [unstakeProofs] = useAccounts(
     "unstakeProof",
-    _.values(unstakeProofAddresses)
+    unstakeProffAddressesVal,
+    { subscribe: true }
   )
 
   const _unstakeNftClickHandler = useCallback(async () => {
@@ -139,6 +145,36 @@ const ManagePoolPage = () => {
     error: "Transaction failed",
   })
 
+  const _beginUnstakeNftClickHandler = useCallback(async () => {
+    if (
+      !anchorAccountCache.isEnabled ||
+      !walletPublicKey ||
+      !selectedMonkette
+    ) {
+      throw new Error("Invalid data")
+    }
+
+    await beginUnstakeNft(
+      anchorAccountCache,
+      walletPublicKey,
+      selectedMonkette.tokenAccount.publicKey
+    )
+    setSelectedMonkette(undefined)
+  }, [
+    anchorAccountCache.isEnabled,
+    walletPublicKey?.toString(),
+    selectedMonkette,
+  ])
+
+  const beginUnstakeNftClickHandler = useTxCallback(
+    _beginUnstakeNftClickHandler,
+    {
+      info: "Begin Unstaking NFT...",
+      success: "Unstake Started!",
+      error: "Transaction failed",
+    }
+  )
+
   // CLAIM
   const rewardToken = useMemo(() => {
     if (!tokenRegistry || !pool) {
@@ -160,6 +196,15 @@ const ManagePoolPage = () => {
     error: "Transaction failed",
   })
 
+  const selectedUnstakeProof = useMemo(() => {
+    if (!unstakeProofAddresses || !unstakeProofs || !selectedMonkette) {
+      return
+    }
+    const unstakeProofAddress =
+      unstakeProofAddresses[selectedMonkette.metaplexMetadata.data.mint]
+    return unstakeProofs[unstakeProofAddress.toString()]
+  }, [_.size(unstakeProofAddresses), _.size(unstakeProofs), selectedMonkette])
+
   return (
     <Box>
       <StakingModal
@@ -171,9 +216,13 @@ const ManagePoolPage = () => {
       />
       <UnstakingModal
         isOpen={selectedTab === PAGE_TABS.UNSTAKE && !!selectedMonkette}
+        walletPublicKey={walletPublicKey}
+        pool={pool}
+        unstakeProof={selectedUnstakeProof}
         selectedMonkette={selectedMonkette}
         onClose={setSelectedMonkette.bind(null, undefined)}
-        onSubmit={unstakeNftClickHandler}
+        beginUnstake={beginUnstakeNftClickHandler}
+        unstake={unstakeNftClickHandler}
       />
       <VStack w="full" spacing={16} textAlign="center">
         <Heading color="brandPink.200" fontFamily="T1">

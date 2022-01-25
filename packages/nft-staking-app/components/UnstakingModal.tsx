@@ -12,19 +12,47 @@ import {
   Center,
   VStack,
 } from "@chakra-ui/react"
-import { MonketteAccount } from "../hooks/useNftAccounts"
+import { PublicKey } from "@solana/web3.js"
+import { useCallback } from "react"
+import { MonketteAccount, MonketteStakeStatus } from "../hooks/useNftAccounts"
+import { Pool } from "../models/pool"
+import { UnstakeProof } from "../models/unstakeProof"
 
 const UnstakingModal = ({
   isOpen,
+  walletPublicKey,
+  pool,
+  unstakeProof,
   selectedMonkette,
   onClose,
-  onSubmit,
+  beginUnstake,
+  unstake,
 }: {
   isOpen: boolean
+  walletPublicKey?: PublicKey
+  pool?: Pool
+  unstakeProof?: UnstakeProof
   selectedMonkette?: MonketteAccount
   onClose: () => void
-  onSubmit: () => void
+  beginUnstake: () => void
+  unstake: () => void
 }) => {
+  const onSubmit = useCallback(() => {
+    if (!walletPublicKey || !pool || !beginUnstake || !unstake) {
+      return
+    }
+    const stakeStatus = selectedMonkette?.getStakeStatus(
+      walletPublicKey,
+      pool.data.unstakeDuration,
+      unstakeProof?.data.unstakeTimestamp
+    )
+    if (stakeStatus === MonketteStakeStatus.STAKED) {
+      return beginUnstake()
+    } else {
+      return unstake()
+    }
+  }, [walletPublicKey, pool, unstakeProof, beginUnstake, unstake])
+
   return (
     <Modal isOpen={isOpen} size="sm" onClose={onClose}>
       <ModalOverlay />
@@ -60,6 +88,7 @@ const UnstakingModal = ({
                 bgColor: "brandPink.900",
               }}
               onClick={onSubmit}
+              disabled={!onSubmit}
             >
               Submit
             </Button>

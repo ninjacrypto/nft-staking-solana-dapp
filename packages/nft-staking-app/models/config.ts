@@ -23,7 +23,6 @@ export class ConfigManager extends BaseAnchorAccountManager<
   }
 
   isValid = (entity: any): entity is Config => {
-    console.log("entity", entity)
     return (
       entity instanceof Config &&
       typeof entity.data.uuid === "string" &&
