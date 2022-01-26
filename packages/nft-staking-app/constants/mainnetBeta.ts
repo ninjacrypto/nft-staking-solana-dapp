@@ -5,5 +5,5 @@ export const ADDRESS_STAKING_POOL = new PublicKey(
 )
 
 export const PROGRAM_NFT_STAKING = new PublicKey(
-  "Fymtt5B6Y9dQMHDFagD1puVbtQsHk7fL7CYBtyx1BfTW"
+  "BHvGoqbTvVVBUdDY42Et73FckAhBXj9QKFqKmf68PZ9S"
 )

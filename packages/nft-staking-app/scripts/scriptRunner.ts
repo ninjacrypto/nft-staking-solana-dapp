@@ -13,7 +13,6 @@ interface Config {
   rewardDuration: number
   unstakeDuration: number
   rewardMint: string
-  preview: boolean
   validNftMints: string[]
 }
 
@@ -31,9 +30,6 @@ const validateConfig = (value: any): value is Readonly<Config> => {
   const invalidKeyMap: string[] = []
   if (!_.includes(["devnet", "mainnet-beta"], value.cluster)) {
     invalidKeyMap.push("cluster")
-  }
-  if (typeof value["preview"] !== "boolean") {
-    invalidKeyMap.push("preview")
   }
   _.forEach(["maxNumNftMints", "rewardDuration", "unstakeDuration"], (key) => {
     if (typeof value[key] !== "number") {
