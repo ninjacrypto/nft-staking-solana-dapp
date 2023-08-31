@@ -16,7 +16,7 @@ import { FC, useMemo } from "react"
 
 const RPC_POOL_CLUSTER_MAP = {
   [WalletAdapterNetwork.Devnet]: "https://api.devnet.solana.com",
-  [WalletAdapterNetwork.Mainnet]: "https://api.mainnet-beta.solana.com",
+  [WalletAdapterNetwork.Mainnet]: "https://distinguished-magical-snow.solana-mainnet.discover.quiknode.pro/5e36a004b75e8471452d218b4ee0df2edef24c2a",
 }
 
 const WalletConnectionProvider: FC = ({ children }) => {

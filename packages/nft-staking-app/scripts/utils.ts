@@ -2,7 +2,7 @@ import { PublicKey } from "@solana/web3.js"
 import * as anchor from "@project-serum/anchor"
 
 export const REWARD_TOKEN_ACCOUNT = new PublicKey(
-  "GTcQd2tXUg8ShRcpowVoffcCjn44dJpvUUcKMhczhTZZ"
+  "3ADszhGBuRvTcX7QJZvEGKDeCzxbF1EiqVecGYtsaAYy"
 )
 
 export const PREFIX = "nft_staking"
